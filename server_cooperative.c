@@ -35,7 +35,7 @@ int main(int argc, char *argv[]){
 
 	socket_connect = socket(address_info->ai_family,address_info->ai_socktype,address_info->ai_protocol);
 
-	if (socket_connect == 0){
+	if (socket_connect != 0){
 		perror("unable to initialize socket file descriptor\n");
 		exit(EXIT_FAILURE);
 	}
