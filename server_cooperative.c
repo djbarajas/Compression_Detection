@@ -6,13 +6,14 @@
 #include <stdlib.h>
 #include <sys/socket.h>
 #include <netdb.h>
+#include <sys/types.h>
 #include <string.h>
 
 
 int main(int argc, char *argv[]){
 
 	struct addrinfo init,* address_info;
-	int socket_connect, addrinfo_retrieval;
+	int socket_connect, addrinfo_retrieval, bind_success;
 
 	memset(&init,0,sizeof(struct addrinfo));
 	init.ai_family= AF_UNSPEC;
@@ -28,24 +29,29 @@ int main(int argc, char *argv[]){
 	*/
 	addrinfo_retrieval= getaddrinfo(NULL, argv[1], &init, &address_info);
 
-	if (addrinfo_retrieval != 0){
+	if (addrinfo_retrieval == -1){
 		perror("unable to retrieve client address information\n");
 		exit(EXIT_FAILURE);
 	}
 
 	socket_connect = socket(address_info->ai_family,address_info->ai_socktype,address_info->ai_protocol);
 
-	if (socket_connect != 0){
+	if (socket_connect == -1){
 		perror("unable to initialize socket file descriptor\n");
 		exit(EXIT_FAILURE);
 	}
 
-	
+
+	bind_success = bind(socket_connect,address_info->ai_addr,address_info->ai_addrlen);
+
+	if (bind_success ==-1){
+		perror("unable to connect socket to address");
+		exit(EXIT_FAILURE);
+	}
+
 	return 0;
 
 }
-
-
 
 
 
