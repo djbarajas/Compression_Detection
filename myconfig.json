@@ -1,0 +1,12 @@
+{
+	"Server IP" : "",
+	"Source Port Number UDP" : "",
+	"Destination Port Number UDP" : "",
+	"Destination Port Number TCP Head" : "",
+	"Destination Port Number TCP Tail" : "",
+	"Port Number for TCP" : "",
+	"Payload Size" : "1000",
+	"Inter-Measurement Time" : "15",
+	"Number of UDP Packets" : "6000",
+	"TTL" : "255"
+}
