@@ -22,11 +22,11 @@ int main(int argc, char *argv[]){
 	/*
 		*Argument A: denotes the host we are trying to conect to (name/IP address)
 		*Argument B: denotes the name of the service or port number we are listening on
-		*Argument C: is our iinitial address information setup
-		*Argument D: is a linked list of address information 
+		*Argument C: is our iinitial address information setup (restrictions)
+		*Argument D: is a linked list of address information  (based on rstrictions)
 		
 	*/
-	addrinfo_retrieval= getaddrinfo(NULL, argv[0], &init, &address_info);
+	addrinfo_retrieval= getaddrinfo(NULL, argv[1], &init, &address_info);
 
 	if (addrinfo_retrieval != 0){
 		perror("unable to retrieve client address information\n");
@@ -35,11 +35,18 @@ int main(int argc, char *argv[]){
 
 	socket_connect = socket(address_info->ai_family,address_info->ai_socktype,address_info->ai_protocol);
 
-	if (socket_connect == 0){
+	if (socket_connect != 0){
 		perror("unable to initialize socket file descriptor\n");
 		exit(EXIT_FAILURE);
 	}
 
+	
 	return 0;
+
 }
+
+
+
+
+
 
