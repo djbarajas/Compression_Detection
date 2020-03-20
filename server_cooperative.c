@@ -22,8 +22,8 @@ int main(int argc, char *argv[]){
 	/*
 		*Argument A: denotes the host we are trying to conect to (name/IP address)
 		*Argument B: denotes the name of the service or port number we are listening on
-		*Argument C: is our iinitial address information setup
-		*Argument D: is a linked list of address information 
+		*Argument C: is our initial address information setup
+		*Argument D: is a linked list of address information returned (filled in by the function)
 		
 	*/
 	addrinfo_retrieval= getaddrinfo(NULL, argv[0], &init, &address_info);
