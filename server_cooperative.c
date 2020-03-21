@@ -15,11 +15,12 @@ int main(int argc, char *argv[]){
 
 
 	/**
-	 * Pre-probing phase [TCP Connection]
+	 * Pre-probing phase [TCP Connection and the recieving of packet information for compression detection]
 	*/
 	
 	struct addrinfo init,* address_info;
-	int socket_connect, addrinfo_retrieval, bind_success,listen_success, accept_success;
+	int socket_connect, addrinfo_retrieval, bind_success,listen_success, accept_success, recv_success;
+	struct json tcp_info;
 
 	memset(&init,0,sizeof(struct addrinfo));
 	init.ai_family= AF_UNSPEC;
@@ -29,7 +30,7 @@ int main(int argc, char *argv[]){
 
 	addrinfo_retrieval= getaddrinfo(NULL, argv[1], &init, &address_info);
 
-	if (addrinfo_retrieval == -1){
+	if (addrinfo_retrieval == -1 || address_info == NULL){
 		perror("unable to retrieve client address information\n");
 		exit(EXIT_FAILURE);
 	}
@@ -49,7 +50,7 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	listen_success = listen(socket_connect,20);
+	listen_success = listen(socket_connect,10);
 
 	if (listen_success == -1){
 		perror("error listening to incomming connections");
@@ -59,10 +60,16 @@ int main(int argc, char *argv[]){
 
 	accept_success=accept(socket_connect,address_info->ai_addr,&address_info->ai_addrlen);
 	if (accept_success == -1){
-		perror("error accpeting socket connections from client\n");
+		perror("error accepting socket connections from client\n");
 		exit(EXIT_FAILURE);
 	}
 
+	recv_success = recv(socket_connect,tcp_info,sizeof(tcp_info),0);
+
+	if(recv_success == -1){
+		perror("error recieving client information");
+		exit(EXIT_FAILURE);
+	}
 
 	return 0;
 
