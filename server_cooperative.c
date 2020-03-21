@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
 
 
 	/**
-	 * Pre-probing phase [TCP Connection and the recieving of packet information for compression detection]
+	 * Pre-probing phase [TCP Connection and retrieval of packet information for compression detection]
 	*/
 	
 	struct addrinfo init,* address_info;
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]){
 		perror("error recieving client information");
 		exit(EXIT_FAILURE);
 	}
-
+	
 	return 0;
 
 }

@@ -8,6 +8,8 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include <unistd.h>
+#include <errno.h> 
 #include <string.h>
 #include "read_json.h"
 
