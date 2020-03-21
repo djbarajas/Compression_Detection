@@ -1,6 +1,11 @@
 #ifndef _RD_JN_
 #define _RD_JN_
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdbool.h>
+#include <string.h>
+
 struct json
 {
 	char * server_ip;
@@ -14,6 +19,8 @@ struct json
 	int num_of_packets;
 	int TTL;
 };
+
+void read_json (struct json * to_read, char * file_name);
 
 
 #endif
