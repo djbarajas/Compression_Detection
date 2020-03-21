@@ -3,10 +3,15 @@
 
  CFLAGS = -g
 
+
 client_cooperative : client_cooperative.c read_json.o
 	gcc ${CFLAGS} -o $@ $^
 
+server_cooperative : server_cooperative.c read_json.o
+	gcc ${CFLAGS} -o $@ $^
+
+
 clean:
-	rm -rf ${PROGS} ${OBJS}
+	rm -rf ${PROGS} ${OBJS} *.dSYM
 
 %.o : %.c %.h
