@@ -10,7 +10,7 @@ client_cooperative : client_cooperative.c read_json.o
 server_cooperative : server_cooperative.c read_json.o
 	gcc ${CFLAGS} -o $@ $^
 
-read_json : read_json.c read_json.h
+read_json : read_json.c read_json.h read_json.o
 	gcc ${CFLAGS} -o $@ $^
 
 

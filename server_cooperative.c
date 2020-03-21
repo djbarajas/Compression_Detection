@@ -64,12 +64,13 @@ int main(int argc, char *argv[]){
 		exit(EXIT_FAILURE);
 	}
 
-	recv_success = recv(socket_connect,tcp_info,sizeof(tcp_info),0);
+	recv_success = recv(socket_connect,tcp_info,sizeof(struct json),0);
 
 	if(recv_success == -1){
 		perror("error recieving client information");
 		exit(EXIT_FAILURE);
 	}
+
 	
 	return 0;
 

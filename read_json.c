@@ -95,19 +95,3 @@ void read_json (struct json * to_read, char * file_name)
 
     fclose(file_ptr);
 }
-
-int main(int argc, char ** argv)
-{
-	struct json to_read;
-	read_json(&to_read, argv[1]);
-	printf("%s\n", to_read.server_ip);
-	printf("%s\n", to_read.src_prt_udp);
-	printf("%s\n", to_read.dest_prt_udp);
-	printf("%s\n", to_read.dest_prt_tcp_head);
-	printf("%s\n", to_read.dest_prt_tcp_tail);
-	printf("%s\n", to_read.prt_tcp);
-	printf("%d\n", to_read.payload_sz);
-	printf("%d\n", to_read.in_time);
-	printf("%d\n", to_read.num_of_packets);
-	printf("%d\n", to_read.TTL);
-}
