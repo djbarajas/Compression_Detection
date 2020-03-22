@@ -59,7 +59,7 @@ int main(int argc, char *argv[]){
 	// this is a temporary fill in
 	
 
-	send_success = send(socket_connect,&tcp_info,sizeof(tcp_info),0);
+	send_success = send(socket_connect,&tcp_info,sizeof(struct json),0);
 
 	if (send_success == -1){
 		perror("unable to send message to the reviever\n");
