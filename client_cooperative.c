@@ -117,6 +117,7 @@ int main()
 
 // 	send_success = send(socket_connect,&tcp_info,sizeof(struct json),0);
 
+
 // 	if (send_success == -1){
 // 		perror("unable to send message to the reviever\n");
 // 		exit(EXIT_FAILURE);		
