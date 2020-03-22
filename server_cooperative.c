@@ -20,12 +20,12 @@ void func(int sockfd)
     char buff[1000]; 
     int n; 
 
-    bzero(buff, 1000); 
+    bzero(buff, sizeof(buff)); 
 
     // read the message from client and copy it in buffer 
-    read(sockfd, buff, 1000); 
+    recv(sockfd, buff, sizeof(buff), 0); 
     // print buffer which contains the client contents 
-    printf("From client: %s\t To client : ", buff); 
+    printf("From client: %s\n", buff); 
     //bzero(buff, 1000); 
     //n = 0; 
 
