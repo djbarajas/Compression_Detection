@@ -63,8 +63,8 @@ int main()
     // function for chat 
     //func(sockfd, buff, 1000); 
 
-  	bzero(buff, strlen(buff)+1); 
-    write(sockfd, buff, strlen(buff)+1);
+  	//bzero(buff, strlen(buff)+1); 
+    send(sockfd, buff, (strlen(buff)+1), 0);
     // close the socket 
     close(sockfd); 
 } 
