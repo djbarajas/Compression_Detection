@@ -102,7 +102,12 @@ int main()
     packet_setup(packet_info, SOCK_DGRAM, &sockfd,&clientaddr);
 
     val=1;
-    setsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, &val, sizeof(val));
+    if (setsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, &val, sizeof(val))<0){
+        printf("unable to set DONT_FRAGMENT bit...\n"); 
+        exit(0); 
+    }
+    else
+        printf("DONT_FRAGMENT bit set successfully..\n");
 
     if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
