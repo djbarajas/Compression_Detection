@@ -14,18 +14,63 @@
 #include "read_json.h"
 #define SA struct sockaddr
 
-// Function designed for chat between client and server. 
-void func(int sockfd) 
-{ 
-    char buff[1000]; 
-    int n; 
+int tokenize(char * buff, struct json * tcp_info )
+{
+	char * temp;
+	//temp = strsep(&buff, " ");
+	//temp = strsep(&buff, " ");
+	tcp_info->server_ip = strsep(&buff, " ");
+	//printf("%s\n", tcp_info->server_ip);
+	tcp_info->src_prt_udp = strsep(&buff, " ");
+	//printf("%s\n", tcp_info->src_prt_udp);
+	tcp_info->dest_prt_udp = strsep(&buff, " ");
+	//printf("%s\n", tcp_info->dest_prt_udp);
+	tcp_info->dest_prt_tcp_head = strsep(&buff, " ");
+	//printf("%s\n", tcp_info->dest_prt_tcp_head);
+	tcp_info->dest_prt_tcp_tail = strsep(&buff, " ");
+	//printf("%s\n", tcp_info->dest_prt_tcp_tail);
+	tcp_info->prt_tcp = strsep(&buff, " ");
+	//printf("%s\n", tcp_info->prt_tcp);
+	tcp_info->payload_sz = atoi(strsep(&buff, " "));
+	//printf("%d\n", tcp_info->payload_sz);
+	tcp_info->in_time = atoi(strsep(&buff, " "));
+	//printf("%d\n", tcp_info->in_time);
+	tcp_info->num_of_packets = atoi(strsep(&buff, " "));
+	//printf("%d\n", tcp_info->num_of_packets);
+	tcp_info->TTL = atoi(strsep(&buff, " "));
+	if (tcp_info->server_ip == NULL || tcp_info->src_prt_udp == NULL ||
+		tcp_info->dest_prt_udp == NULL || tcp_info->dest_prt_tcp_head == NULL ||
+		tcp_info->dest_prt_tcp_tail == NULL || tcp_info->prt_tcp == NULL ||
+		tcp_info->prt_tcp == NULL || tcp_info->payload_sz < 1 ||
+		tcp_info->in_time < 1 || tcp_info->num_of_packets < 1 ||
+		tcp_info->TTL < 0)
+	{
+		printf("NOT ENOUGH INFO CLOSING SOCKET\n");
+		return 0;
+	}
+	return 1;
+	//printf("%d\n", tcp_info->TTL);
+	//printf("%s\n",temp);
+}
 
-    bzero(buff, sizeof(buff)); 
+
+// Function designed for chat between client and server. 
+void func(int sockfd, char * buff, int len, struct json * tcp_info) 
+{   
+
+    bzero(buff, 1000); 
 
     // read the message from client and copy it in buffer 
-    recv(sockfd, buff, sizeof(buff), 0); 
+    recv(sockfd, buff, 1000, 0); 
     // print buffer which contains the client contents 
     printf("From client: %s\n", buff); 
+    int ret = tokenize(buff, tcp_info);
+    if ( ret == 0 )
+    {
+    	close(sockfd);
+    	exit(1);
+    }
+
     //bzero(buff, 1000); 
     //n = 0; 
 
@@ -38,7 +83,9 @@ void func(int sockfd)
 int main() 
 { 
     int sockfd, connfd, len; 
-    struct sockaddr_in servaddr, cli; 
+    struct sockaddr_in servaddr, cli;
+    struct json tcp_info; 
+    char buff[1000];
   
     // socket create and verification 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
@@ -82,76 +129,8 @@ int main()
         printf("server acccept the client...\n"); 
   
     // Function for chatting between client and server 
-    func(connfd); 
+    func(connfd, buff, 1000, &tcp_info); 
   
     // After chatting close the socket 
     close(sockfd); 
 } 
-
-// int main(int argc, char *argv[]){
-
-
-// 	/**
-// 	 * Pre-probing phase [TCP Connection and retrieval of packet information for compression detection]
-// 	*/
-	
-// 	struct addrinfo init,* address_info;
-// 	int socket_connect, addrinfo_retrieval, bind_success,listen_success, accept_success, recv_success;
-// 	struct json tcp_info;
-// 	char info[1000];
-
-
-// 	memset(&init,0,sizeof(struct addrinfo));
-// 	init.ai_family= AF_UNSPEC;
-// 	init.ai_socktype=SOCK_STREAM;
-// 	init.ai_flags = AI_PASSIVE;
-
-
-// 	addrinfo_retrieval= getaddrinfo(NULL, argv[1], &init, &address_info);
-
-// 	if (addrinfo_retrieval == -1 || address_info == NULL){
-// 		perror("unable to retrieve client address information\n");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	socket_connect = socket(address_info->ai_family,address_info->ai_socktype,address_info->ai_protocol);
-
-// 	if (socket_connect == -1){
-// 		perror("unable to initialize socket file descriptor\n");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-
-// 	bind_success = bind(socket_connect,address_info->ai_addr,address_info->ai_addrlen);
-
-// 	if (bind_success ==-1){
-// 		perror("unable to connect socket to address");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	listen_success = listen(socket_connect,10);
-
-// 	if (listen_success == -1){
-// 		perror("error listening to incomming connections");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-
-// 	accept_success=accept(socket_connect,address_info->ai_addr,&address_info->ai_addrlen);
-// 	if (accept_success == -1){
-// 		perror("error accepting socket connections from client\n");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	recv_success = recv(accept_success,&tcp_info,sizeof(struct json),0);
-
-// 	if(recv_success == -1){
-// 		perror("error recieving client information");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	//close(socket_connect);
-// 	printf("%s\n",tcp_info.server_ip);
-// 	return 0;
-
-// }
