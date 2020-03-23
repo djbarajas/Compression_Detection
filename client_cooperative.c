@@ -61,6 +61,15 @@ int main()
         printf("connected to the server..\n"); 
   
     send(sockfd, buff, (strlen(buff)+1), 0);
+    char ans[8];
+    bzero(ans, 8);
+    recv(sockfd, ans, 8, 0);
+    printf("%s\n", ans);
+    if(strncmp(ans, "SUCCESS", 7) != 0)
+    {
+    	printf("PREPROBING FAILED EXITING\n");
+    	exit(1);
+    }
 
     // close the socket 
     close(sockfd); 
