@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <netdb.h>
-#include <sys/types.h>
+  #include <sys/types.h>
+  #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h> 
 #include <string.h>
@@ -11,7 +11,7 @@
 #define SA struct sockaddr 
 
 
-void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* servaddr){
+void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
     
     *sockfd = socket(AF_INET, socket_type, 0); 
 
@@ -22,16 +22,16 @@ void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct s
     else
         printf("Socket successfully created..\n");
 
-    bzero(servaddr, sizeof(*servaddr)); 
+    bzero(clientaddr, sizeof(*clientaddr)); 
 
     while(*packet_info.server_ip == ' ')
     {
         packet_info.server_ip++;
     }
 
-    servaddr->sin_family = AF_INET; 
-    servaddr->sin_addr.s_addr = inet_addr(packet_info.server_ip);
-    servaddr->sin_port = htons(atoi(packet_info.prt_tcp)); 
+    clientaddr->sin_family = AF_INET; 
+    clientaddr->sin_addr.s_addr = inet_addr(packet_info.server_ip);
+    clientaddr->sin_port = htons(atoi(packet_info.prt_tcp)); 
 
 }
 
@@ -68,8 +68,8 @@ int main()
         Pre-probing phase [send in packet information through TCP connection] 
     */
 
-    int sockfd, connfd, val; 
-    struct sockaddr_in servaddr, cli;
+    int sockfd, connfd, val, clientlen; 
+    struct sockaddr_in clientaddr, cli;
     struct json packet_info;
     uint8_t *data;
     
@@ -77,10 +77,10 @@ int main()
     char buff[1000] = {0};
     read_json(&packet_info, "myconfig.json", buff); 
 
-    packet_setup(packet_info, SOCK_STREAM, &sockfd, &servaddr);
+    packet_setup(packet_info, SOCK_STREAM, &sockfd, &clientaddr);
 
 
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
         exit(0); 
     } 
@@ -99,12 +99,12 @@ int main()
     */
 
 
-    packet_setup(packet_info, SOCK_DGRAM, &sockfd,&servaddr);
+    packet_setup(packet_info, SOCK_DGRAM, &sockfd,&clientaddr);
 
     val=1;
     setsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, &val, sizeof(val));
 
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
         exit(0); 
     } 
@@ -115,10 +115,11 @@ int main()
     //let's setup UDP payload 
 
     data = allocate_ustrmem(16);
+    clientlen = sizeof(clientaddr);
 
     for (int i=0;i<6000;i++){
 
-        if(sendto(sockfd,data,sizeof(data),0,servaddr.sin_addr,servaddr.ai_addrlen)<=0){
+        if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
             fprintf (stderr, "ERROR: unable to send UDP dataset to server.\n");
             exit (EXIT_FAILURE);
         } 
