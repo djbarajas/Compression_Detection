@@ -5,3 +5,5 @@
 3. are all the UDP packets sent of the same socket connection? Do we have to reassign our sockets consecutively?
 
 4. does our high entropy data include digits outside 0 and 1?
+
+5. is checksum deployed on the server or client side?
