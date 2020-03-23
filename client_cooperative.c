@@ -68,7 +68,7 @@ int main()
         Pre-probing phase [send in packet information through TCP connection] 
     */
 
-    int sockfd, connfd; 
+    int sockfd, connfd, val; 
     struct sockaddr_in servaddr, cli;
     struct json packet_info;
     uint8_t *data;
@@ -101,12 +101,16 @@ int main()
 
     packet_setup(packet_info, SOCK_DGRAM, &sockfd,&servaddr);
 
+    val=1;
+    setsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, &val, sizeof(val));
+
     if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
         exit(0); 
     } 
     else
         printf("connected to the server..\n"); 
+
 
     //let's setup UDP payload 
 
