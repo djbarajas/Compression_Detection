@@ -57,6 +57,8 @@ int tokenize(char * buff, struct json * tcp_info )
 // Function designed for chat between client and server. 
 void func(int sockfd, char * buff, int len, struct json * tcp_info) 
 {   
+	char new[8] = "ERROR!!";
+	char success[8] = "SUCCESS";
 
     bzero(buff, 1000); 
 
@@ -67,8 +69,15 @@ void func(int sockfd, char * buff, int len, struct json * tcp_info)
     int ret = tokenize(buff, tcp_info);
     if ( ret == 0 )
     {
+    	send(sockfd, new, 8, 0);
+
     	close(sockfd);
     	exit(1);
+    }
+    else
+    {
+    	send(sockfd, success, 8, 0);
+    	return;
     }
 
     //bzero(buff, 1000); 
