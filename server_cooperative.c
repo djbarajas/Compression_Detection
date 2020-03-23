@@ -1,8 +1,3 @@
-/*
-	THINGS TO DO 
-	** FREE addrss_info after usage **
-*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -83,75 +78,10 @@ int main()
   
     // Function for chatting between client and server 
     func(connfd); 
-  
+        
+
+
     // After chatting close the socket 
     close(sockfd); 
 } 
 
-// int main(int argc, char *argv[]){
-
-
-// 	/**
-// 	 * Pre-probing phase [TCP Connection and retrieval of packet information for compression detection]
-// 	*/
-	
-// 	struct addrinfo init,* address_info;
-// 	int socket_connect, addrinfo_retrieval, bind_success,listen_success, accept_success, recv_success;
-// 	struct json tcp_info;
-// 	char info[1000];
-
-
-// 	memset(&init,0,sizeof(struct addrinfo));
-// 	init.ai_family= AF_UNSPEC;
-// 	init.ai_socktype=SOCK_STREAM;
-// 	init.ai_flags = AI_PASSIVE;
-
-
-// 	addrinfo_retrieval= getaddrinfo(NULL, argv[1], &init, &address_info);
-
-// 	if (addrinfo_retrieval == -1 || address_info == NULL){
-// 		perror("unable to retrieve client address information\n");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	socket_connect = socket(address_info->ai_family,address_info->ai_socktype,address_info->ai_protocol);
-
-// 	if (socket_connect == -1){
-// 		perror("unable to initialize socket file descriptor\n");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-
-// 	bind_success = bind(socket_connect,address_info->ai_addr,address_info->ai_addrlen);
-
-// 	if (bind_success ==-1){
-// 		perror("unable to connect socket to address");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	listen_success = listen(socket_connect,10);
-
-// 	if (listen_success == -1){
-// 		perror("error listening to incomming connections");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-
-// 	accept_success=accept(socket_connect,address_info->ai_addr,&address_info->ai_addrlen);
-// 	if (accept_success == -1){
-// 		perror("error accepting socket connections from client\n");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	recv_success = recv(accept_success,&tcp_info,sizeof(struct json),0);
-
-// 	if(recv_success == -1){
-// 		perror("error recieving client information");
-// 		exit(EXIT_FAILURE);
-// 	}
-
-// 	//close(socket_connect);
-// 	printf("%s\n",tcp_info.server_ip);
-// 	return 0;
-
-// }
