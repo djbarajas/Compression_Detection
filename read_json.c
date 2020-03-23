@@ -50,7 +50,15 @@ void set_struct(struct json * to_read, char * line, char * all)
 		temp = temp + strcspn(temp, ":") + 3;
 		*(temp + strcspn(temp, "\"")) = '\0';
 		to_read->payload_sz = atoi(temp);
-		sprintf(all,"%s %s",all,temp);
+		if (to_read->payload_sz < 1)
+		{
+			to_read->payload_sz = 1000;
+			sprintf(all,"%s %d",all,to_read->payload_sz);
+		}
+		else
+		{
+			sprintf(all,"%s %s",all,temp);
+		}
 	}
 	else if (strstr(line,"Inter-Measurement Time") != NULL)
 	{
@@ -58,15 +66,31 @@ void set_struct(struct json * to_read, char * line, char * all)
 		temp = temp + strcspn(temp, ":") + 3;
 		*(temp + strcspn(temp, "\"")) = '\0';
 		to_read->in_time = atoi(temp);
-		sprintf(all,"%s %s",all,temp);
+		if (to_read->in_time < 1)
+		{
+			to_read->in_time = 15;
+			sprintf(all,"%s %d",all,to_read->in_time);
+		}
+		else
+		{
+			sprintf(all,"%s %s",all,temp);
+		}
 	}
 	else if (strstr(line,"Number of UDP Packets") != NULL)
 	{
 		char *temp = strdup(line);
 		temp = temp + strcspn(temp, ":") + 3;
 		*(temp + strcspn(temp, "\"")) = '\0';
-		to_read->num_of_packets = atoi(temp);	
-		sprintf(all,"%s %s",all,temp);
+		to_read->num_of_packets = atoi(temp);
+		if (to_read->num_of_packets < 1)
+		{
+			to_read->num_of_packets = 6000;
+			sprintf(all,"%s %d",all,to_read->num_of_packets);
+		}	
+		else
+		{
+			sprintf(all,"%s %s",all,temp);
+		}
 	}
 	else if (strstr(line,"TTL") != NULL)
 	{
@@ -74,7 +98,15 @@ void set_struct(struct json * to_read, char * line, char * all)
 		temp = temp + strcspn(temp, ":") + 3;
 		*(temp + strcspn(temp, "\"")) = '\0';
 		to_read->TTL = atoi(temp);
-		sprintf(all,"%s %s",all,temp);
+		if (to_read->TTL < 0)
+		{
+			to_read->TTL = 255;
+			sprintf(all,"%s %d",all,to_read->TTL);
+		}
+		else 
+		{
+			sprintf(all,"%s %s",all,temp);
+		}
 	}
 }
 
