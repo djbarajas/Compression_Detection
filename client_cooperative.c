@@ -15,6 +15,25 @@
 #include "read_json.h"
 #define SA struct sockaddr 
 
+void read_high_entropy_data(uint8_t * data, int len)
+{
+	FILE* file_ptr = NULL;
+	char temp;
+	file_ptr =  fopen("/dev/random", "r");
+	for (int i = 0; i < len; i++)
+	{
+		temp = getc(file_ptr);
+		int t = atoi(&temp);
+		if (t > 1)
+		{
+			t = 1;
+		}
+		data[i] = t;
+		printf("%d\n", data[i]);
+	}
+
+
+}
 
 void func(int sockfd, char * buff, int len) 
 { 
@@ -73,4 +92,8 @@ int main()
 
     // close the socket 
     close(sockfd); 
+
+    uint8_t test[8] = {0};
+    read_high_entropy_data(test, 8);
+
 } 
