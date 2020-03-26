@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <netdb.h>
-  #include <sys/types.h>
-  #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h> 
 #include <string.h>
@@ -101,8 +101,8 @@ int main()
 
     packet_setup(packet_info, SOCK_DGRAM, &sockfd,&clientaddr);
 
-    val=1;
-    if (setsockopt(sockfd, IPPROTO_IP, IP_DONTFRAG, &val, sizeof(val))<0){
+    val=IP_PMTUDISC_DO;
+    if (setsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val))<0){
         printf("unable to set DONT_FRAGMENT bit...\n"); 
         exit(0); 
     }
@@ -122,7 +122,7 @@ int main()
     data = allocate_ustrmem(16);
     clientlen = sizeof(clientaddr);
 
-    for (int i=0;i<6000;i++){
+    for (int i=0;i<packet_info.num_of_packets;i++){
 
         if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
             fprintf (stderr, "ERROR: unable to send UDP dataset to server.\n");
