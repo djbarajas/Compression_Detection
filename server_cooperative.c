@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "read_json.h"
@@ -150,17 +151,36 @@ int main()
     // After chatting close the socket 
     close(sockfd); 
 
+   // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
+    clock_t init_low, end_low;
+    double total_time_low;
+
     //setup and open new connection for server (we are currently expecting UDP packets that divide to two parts)    
     server_setup(SOCK_DGRAM,&sockfd,&servaddr,&peer_addr);
-    // we want to recieve the low entropy packet train (Quantity: 6000)    
-    for (int i=0;i<6000;i++){        
-        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
-    }
-    // now we want to recieve the high entropy packet train (Quantity: 6000)    
-    for (int i=0;i<6000;i++){        
-        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
-    }
 
+    // we want to recieve the low entropy packet train (Quantity: 6000)    
+
+    init_low = clock();
+    for (int i=0;i<6000;i++){        
+        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
+    }
+    end_low = clock();
+
+    total_time_low = ((double)(end_low- init_low))/CLOCKS_PER_SEC;
+	
+    // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
+    clock_t init_high, end_high;
+    double total_time_high;
+
+    // now we want to recieve the high entropy packet train (Quantity: 6000)    
+
+    init_high = clock();
+    for (int i=0;i<6000;i++){        
+        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
+    }
+    end_high = clock();
+
+    total_time_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
 
     close(sockfd);
 } 
