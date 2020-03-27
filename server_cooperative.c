@@ -127,8 +127,28 @@ int main()
     int sockfd, connfd, len; 
     struct sockaddr_in servaddr, cli; 
     struct json tcp_info; 
-    char buff[1000];
-  
+
+    // setup buffer holder for storing file information
+        char buff[1000]; 
+        bzero(buff, sizeof(buff)); 
+    
+    //setup container for the recieved udp packets
+    uint8_t* udp_payload;
+
+
+    //setup and open connection for server (we are currently expecting TCP packets)
+    server_setup(SOCK_STREAM,&sockfd,&servaddr,&peer_addr);
+
+
+    // read the message that we obtained from the TCP connection (our file information)
+    recv(sockfd, buff, sizeof(buff), 0); 
+
+
+    // did we recieve the coreect information? Let's find out! 
+    printf("From client: %s\n", buff); 
+
+    // After chatting close the socket 
+    close(sockfd); 
 
     //setup and open new connection for server (we are currently expecting UDP packets that divide to two parts)    
     server_setup(SOCK_DGRAM,&sockfd,&servaddr,&peer_addr);
@@ -140,6 +160,7 @@ int main()
     for (int i=0;i<6000;i++){        
         recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
     }
+
 
     close(sockfd);
 } 
