@@ -16,7 +16,7 @@
 #define SA struct sockaddr 
 
 void read_high_entropy_data(uint8_t * data, int len)
-{
+{ 
 	FILE* file_ptr = NULL;
 	char temp;
 	file_ptr =  fopen("/dev/random", "r");
