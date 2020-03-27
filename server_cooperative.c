@@ -12,6 +12,23 @@
 #define SA struct sockaddr
 
 
+void read_high_entropy_data(uint8_t * data, int len){
+    FILE* file_ptr = NULL;
+    char temp;
+    file_ptr =  fopen("/dev/random", "r");
+    for (int i = 0; i < len; i++){
+        temp = getc(file_ptr);
+        int t = atoi(&temp);
+        if (t > 1){
+            t = 1;
+        }
+        data[i] = t;
+        printf("%d\n", data[i]);
+    }
+
+
+}
+
 void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr){
     
     int connfd,len;

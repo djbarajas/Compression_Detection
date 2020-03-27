@@ -118,7 +118,7 @@ int main()
         printf("connected to the server..\n"); 
 
 
-    //let's setup UDP payload 
+    //let's setup UDP low entropy payload 
 
     data = allocate_ustrmem(16);
     clientlen = sizeof(clientaddr);
@@ -132,6 +132,8 @@ int main()
         else 
             printf("packet %d has been sent successfully\n",(i+1)); 
     }
+
+    //let's setup UDP high entropy payload 
 
     close(sockfd); 
 
