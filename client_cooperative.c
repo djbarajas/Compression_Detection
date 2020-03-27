@@ -110,6 +110,19 @@ int main()
 
 
     send(sockfd, buff, (strlen(buff)+1), 0);
+    char new[8];
+    bzero(new, 8);
+    recv(sockfd, new, 8,0);
+
+    if (strncmp(new, "SUCCESS", 7) != 0)
+    {
+        printf("FAILED PREPROBING PHASE EXITING...");
+        exit(0);
+    }
+    else
+    {
+        printf("ended conn\n");
+    }
 
 
     close(sockfd); 
@@ -121,7 +134,7 @@ int main()
 
 
     packet_setup(packet_info, SOCK_DGRAM, &sockfd,&clientaddr);
-
+    clientaddr.sin_port = htons(atoi(packet_info.src_prt_udp));
     val=IP_PMTUDISC_DO;
     if (setsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val))<0){
         printf("unable to set DONT_FRAGMENT bit...\n"); 
@@ -147,11 +160,8 @@ int main()
     for (int i=0;i<packet_info.num_of_packets;i++){
 
         if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
-            fprintf (stderr, "ERROR: unable to send UDP dataset to server.\n");
-            exit (EXIT_FAILURE);
-        } 
-        else 
-            printf("packet %d has been sent successfully\n",(i+1)); 
+            continue;
+        }  
     }
 
     //let's setup UDP high entropy payload 
