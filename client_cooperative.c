@@ -156,7 +156,10 @@ int main()
 
     //let's setup UDP high entropy payload 
    read_high_entropy_data(data,packet_info.payload_sz);
-
+    
+    // wait Inter-Measurement Time (γ) seconds before sending the next set of UDP packets
+    sleep(packet_info.in_time);
+    
     for (int i=0;i<packet_info.num_of_packets;i++){
 
         if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
