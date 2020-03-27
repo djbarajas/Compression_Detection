@@ -1,37 +1,77 @@
-/*
-	THINGS TO DO 
-	** FREE addrss_info after usage **
-	** check validity of addressinfo  == NULL **
-*/
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/socket.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h> 
 #include <string.h>
 #include <arpa/inet.h>
 #include "read_json.h"
 #define SA struct sockaddr 
+#define IP_DONTFRAG 1
 
-void read_high_entropy_data(uint8_t * data, int len)
-{ 
-	FILE* file_ptr = NULL;
-	char temp;
-	file_ptr =  fopen("/dev/random", "r");
-	for (int i = 0; i < len; i++)
-	{
-		temp = getc(file_ptr);
-		int t = atoi(&temp);
-		if (t > 1)
-		{
-			t = 1;
-		}
-		data[i] = t;
-		printf("%d\n", data[i]);
-	}
 
+void read_high_entropy_data(uint8_t * data, int len){
+    FILE* file_ptr = NULL;
+    char temp;
+    file_ptr =  fopen("/dev/random", "r");
+    for (int i = 0; i < len; i++){
+        temp = getc(file_ptr);
+        int t = atoi(&temp);
+        if (t > 1){
+            t = 1;
+        }
+        data[i] = t;
+        printf("%d\n", data[i]);
+    }
+
+
+}
+
+void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
+    
+    *sockfd = socket(AF_INET, socket_type, 0); 
+
+    if (*sockfd == -1) { 
+        printf("socket creation failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("Socket successfully created..\n");
+
+    bzero(clientaddr, sizeof(*clientaddr)); 
+
+    while(*packet_info.server_ip == ' ')
+    {
+        packet_info.server_ip++;
+    }
+
+    clientaddr->sin_family = AF_INET; 
+    clientaddr->sin_addr.s_addr = inet_addr(packet_info.server_ip);
+    clientaddr->sin_port = htons(atoi(packet_info.prt_tcp)); 
+
+}
+
+// Allocate memory for an array of unsigned chars.
+uint8_t * allocate_ustrmem(int len)
+{
+  void *tmp;
+
+
+  if (len <= 0) {
+    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_ustrmem().\n", len);
+    exit (EXIT_FAILURE);
+  }
+
+  tmp = (uint8_t *) malloc (len * sizeof (uint8_t));
+  if (tmp != NULL) {
+    memset (tmp, 0, len * sizeof (uint8_t));
+    return (tmp);
+  } else {
+    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_ustrmem().\n");
+    exit (EXIT_FAILURE);
+  }
 
 }
 
@@ -40,60 +80,92 @@ void func(int sockfd, char * buff, int len)
     int n; 
     bzero(buff, len); 
     write(sockfd, buff, len); 
-    //bzero(buff, sizeof(buff)); 
-    //read(sockfd, buff, sizeof(buff)); 
 } 
   
 int main() 
 { 
-    int sockfd, connfd; 
-    struct sockaddr_in servaddr, cli;
-    struct json tcp_info;
+    /**
+        Pre-probing phase [send in packet information through TCP connection] 
+    */
+
+    int sockfd, connfd, val, clientlen; 
+    struct sockaddr_in clientaddr, cli;
+    struct json packet_info;
+    uint8_t *data;
+    
 
     char buff[1000] = {0};
-    read_json(&tcp_info, "myconfig.json", buff); 
-  	//printf("%s\n", buff);
-    // socket create and varification 
-    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
-    if (sockfd == -1) { 
-        printf("socket creation failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("Socket successfully created..\n"); 
-    bzero(&servaddr, sizeof(servaddr)); 
- 	while(*tcp_info.server_ip == ' ')
- 	{
- 		tcp_info.server_ip++;
- 	}
-    // assign IP, PORT 
-    servaddr.sin_family = AF_INET; 
-    servaddr.sin_addr.s_addr = inet_addr(tcp_info.server_ip);
-    servaddr.sin_port = htons(atoi(tcp_info.prt_tcp)); 
-  
-    // connect the client socket to server socket 
-    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
+    read_json(&packet_info, "myconfig.json", buff); 
+
+    packet_setup(packet_info, SOCK_STREAM, &sockfd, &clientaddr);
+
+
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
         exit(0); 
     } 
     else
         printf("connected to the server..\n"); 
   
-    send(sockfd, buff, (strlen(buff)+1), 0);
-    char ans[8];
-    bzero(ans, 8);
-    recv(sockfd, ans, 8, 0);
-    printf("%s\n", ans);
-    if(strncmp(ans, "SUCCESS", 7) != 0)
-    {
-    	printf("PREPROBING FAILED EXITING\n");
-    	exit(1);
-    }
 
-    // close the socket 
+
+    send(sockfd, buff, (strlen(buff)+1), 0);
+
+
     close(sockfd); 
 
-    uint8_t test[8] = {0};
-    read_high_entropy_data(test, 8);
+
+    /**
+        Probing phase [send in UDP packet trains of high and low entropy data each of quantity 6000] 
+    */
+
+
+    packet_setup(packet_info, SOCK_DGRAM, &sockfd,&clientaddr);
+
+    val=IP_PMTUDISC_DO;
+    if (setsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val))<0){
+        printf("unable to set DONT_FRAGMENT bit...\n"); 
+        exit(0); 
+    }
+    else
+        printf("DONT_FRAGMENT bit set successfully..\n");
+
+
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
+        printf("connection with the server failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("connected to the server..\n"); 
+
+
+    //let's setup UDP low entropy payload 
+
+    data = allocate_ustrmem(16);
+    clientlen = sizeof(clientaddr);
+
+    for (int i=0;i<packet_info.num_of_packets;i++){
+
+        if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
+            fprintf (stderr, "ERROR: unable to send UDP dataset to server.\n");
+            exit (EXIT_FAILURE);
+        } 
+        else 
+            printf("packet %d has been sent successfully\n",(i+1)); 
+    }
+
+    //let's setup UDP high entropy payload 
+
+    close(sockfd); 
+
+}   
+
+
+
+
+
+
+
+
 
 } 
