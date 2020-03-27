@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <netdb.h>
-  #include <sys/types.h>
-  #include <sys/socket.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h> 
 #include <string.h>
 #include <arpa/inet.h>
 #include "read_json.h"
 #define SA struct sockaddr 
-
+#define IP_DONTFRAG 1
 
 void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
     
@@ -95,7 +95,7 @@ int main()
 
 
     /**
-        Probing phase [send in UDP packet trains of high and low entropy data of quantity 6000] 
+        Probing phase [send in UDP packet trains of high and low entropy data each of quantity 6000] 
     */
 
 
@@ -108,6 +108,7 @@ int main()
     }
     else
         printf("DONT_FRAGMENT bit set successfully..\n");
+
 
     if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
         printf("connection with the server failed...\n"); 
