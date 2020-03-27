@@ -13,9 +13,11 @@
 
 
 
+
 void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr, struct read_json){
     
     int connfd,len;
+
 
     // socket create and verification 
     *sockfd = socket(AF_INET, socket_type, 0); 
@@ -61,6 +63,7 @@ void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, str
     else
         printf("server acccept the client...\n"); 
   
+
 }
 
 int tokenize(char * buff, struct json * tcp_info )

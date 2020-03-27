@@ -58,6 +58,7 @@ uint8_t * allocate_ustrmem(int len)
 {
   void *tmp;
 
+
   if (len <= 0) {
     fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_ustrmem().\n", len);
     exit (EXIT_FAILURE);
@@ -71,6 +72,7 @@ uint8_t * allocate_ustrmem(int len)
     fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_ustrmem().\n");
     exit (EXIT_FAILURE);
   }
+
 }
 
 void func(int sockfd, char * buff, int len) 
@@ -105,6 +107,7 @@ int main()
     else
         printf("connected to the server..\n"); 
   
+
 
     send(sockfd, buff, (strlen(buff)+1), 0);
 
@@ -165,3 +168,4 @@ int main()
 
 
 
+} 
