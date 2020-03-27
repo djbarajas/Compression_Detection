@@ -148,7 +148,9 @@ int main()
     // did we recieve the coreect information? Let's find out! 
     printf("From client: %s\n", buff); 
 
-
+    // After chatting close the socket 
+    close(sockfd); 
+	
     // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
     clock_t init_low, end_low;
     double delta_low;
