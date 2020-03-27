@@ -141,7 +141,7 @@ int main()
 
     //let's setup UDP low entropy payload 
 
-    data = allocate_ustrmem(16);
+    data = allocate_ustrmem(packet_info.payload_sz);
     clientlen = sizeof(clientaddr);
 
     for (int i=0;i<packet_info.num_of_packets;i++){
