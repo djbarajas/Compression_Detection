@@ -148,12 +148,10 @@ int main()
     // did we recieve the coreect information? Let's find out! 
     printf("From client: %s\n", buff); 
 
-    // After chatting close the socket 
-    close(sockfd); 
 
-   // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
+    // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
     clock_t init_low, end_low;
-    double total_time_low;
+    double delta_low;
 
     //setup and open new connection for server (we are currently expecting UDP packets that divide to two parts)    
     server_setup(SOCK_DGRAM,&sockfd,&servaddr,&peer_addr);
@@ -166,11 +164,11 @@ int main()
     }
     end_low = clock();
 
-    total_time_low = ((double)(end_low- init_low))/CLOCKS_PER_SEC;
-	
+    delta_low = ((double)(end_low- init_low))/CLOCKS_PER_SEC;
+
     // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
     clock_t init_high, end_high;
-    double total_time_high;
+    double delta_high;
 
     // now we want to recieve the high entropy packet train (Quantity: 6000)    
 
@@ -180,8 +178,38 @@ int main()
     }
     end_high = clock();
 
-    total_time_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
+    delta_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
 
-    close(sockfd);
+    // now we will do the check: If (∆tH − ∆tL) is bigger than our threshold (100 ms) then we have compression
+
+    double threshold = 0.1; // convert to seconds
+
+    bzero(buff, sizeof(buff));
+
+    if((delta_high-delta_low)>threshold){
+        strcpy(buff,"Compression detected!");
+    } 
+    else{
+        strcpy(buff,"No compression was detected.");
+    }
+    close(sockfd); 
+
+    // now initialize a TCP connection that returns our compression findings to the client
+    struct sockaddr_in clientaddr;
+
+    packet_setup(tcp_info, SOCK_STREAM, &sockfd, &clientaddr);
+
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
+        printf("connection with the server failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("connected to the server..\n"); 
+  
+
+    send(sockfd, buff, (strlen(buff)+1), 0);
+
+
+    close(sockfd); 
 } 
 
