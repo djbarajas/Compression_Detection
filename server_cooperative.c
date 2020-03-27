@@ -8,11 +8,13 @@
 #include <string.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include "read_json.h"
 #define SA struct sockaddr
 
 int tokenize(char * buff, struct json * tcp_info )
 {
+    printf("got\n");
     char * temp;
     tcp_info->server_ip = strsep(&buff, " ");
     tcp_info->src_prt_udp = strsep(&buff, " ");
@@ -24,7 +26,6 @@ int tokenize(char * buff, struct json * tcp_info )
     tcp_info->in_time = atoi(strsep(&buff, " "));
     tcp_info->num_of_packets = atoi(strsep(&buff, " "));
     tcp_info->TTL = atoi(strsep(&buff, " "));
-
     if (tcp_info->server_ip == NULL || tcp_info->src_prt_udp == NULL ||
         tcp_info->dest_prt_udp == NULL || tcp_info->dest_prt_tcp_head == NULL ||
         tcp_info->dest_prt_tcp_tail == NULL || tcp_info->prt_tcp == NULL ||
@@ -53,6 +54,7 @@ void func(int sockfd, char * buff, int len, struct json * tcp_info)
     // print buffer which contains the client contents 
     printf("From client: %s\n", buff); 
     int ret = tokenize(buff, tcp_info);
+
     if ( ret == 0 )
     {
     	send(sockfd, new, 8, 0);
@@ -67,7 +69,7 @@ void func(int sockfd, char * buff, int len, struct json * tcp_info)
     }
 }
 
-void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr){
+int server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr){
     
     int connfd,len;
 
@@ -115,7 +117,7 @@ void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, str
     else
         printf("server acccept the client...\n"); 
   
-
+    return connfd;
 }
 
 
@@ -128,7 +130,84 @@ int main()
     struct json tcp_info; 
     char buff[1000];
   
-    server_setup(SOCK_STREAM,&sockfd,&servaddr,&cli);
+    connfd = server_setup(SOCK_STREAM,&sockfd,&servaddr,&cli);
+    func(connfd, buff, 1000, &tcp_info);
+    printf("Ending connection\n");
+    close(sockfd);
+
+
+    char buffer[1024]; 
+    char *hello = "Hello from server"; 
+    struct sockaddr_in  cliaddr; 
+      
+    // Creating socket file descriptor 
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+        perror("socket creation failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+      
+    memset(&servaddr, 0, sizeof(servaddr)); 
+    memset(&cliaddr, 0, sizeof(cliaddr)); 
+      
+    // Filling server information 
+    servaddr.sin_family    = AF_INET; // IPv4 
+    servaddr.sin_addr.s_addr = INADDR_ANY; 
+    servaddr.sin_port = htons(atoi(tcp_info.dest_prt_udp)); 
+      
+    // Bind the socket with the server address 
+    if ( bind(sockfd, (const struct sockaddr *)&servaddr,  
+            sizeof(servaddr)) < 0 ) 
+    { 
+        perror("bind failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+    else
+    {
+        printf("BINDED\n");
+    }
+      
+    int  n; 
+    clock_t start_t, end_t;
+    double total_t;
+  
+    len = sizeof(cliaddr);  //len is value/resuslt 
+    start_t = clock();
+    for (int i=0;i<tcp_info.num_of_packets;i++){        
+        n = recvfrom(sockfd, (char *)buffer, 1024,  
+                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
+                &len);
+    }
+    end_t = clock();
+    total_t = (((double)end_t) - ((double)start_t)) / ((double)CLOCKS_PER_SEC);
+    total_t = total_t * 100;
+    printf("time : %f\n", total_t);
+    close(sockfd);
+
+      // we want to recieve the low entropy packet train (Quantity: 6000)    
+
+    // init_low = clock();
+    // for (int i=0;i<6000;i++){        
+    //     recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
+    // }
+    // end_low = clock();
+
+    // total_time_low = ((double)(end_low- init_low))/CLOCKS_PER_SEC;
+    
+    // // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
+    // clock_t init_high, end_high;
+    // double total_time_high;
+
+    // // now we want to recieve the high entropy packet train (Quantity: 6000)    
+
+    // init_high = clock();
+    // for (int i=0;i<6000;i++){        
+    //     recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
+    // }
+    // end_high = clock();
+
+    // total_time_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
+
+    close(sockfd);
     //setup and open new connection for server (we are currently expecting UDP packets that divide to two parts)    
     // server_setup(SOCK_DGRAM,&sockfd,&servaddr,&peer_addr);
     // // we want to recieve the low entropy packet train (Quantity: 6000)    
@@ -140,6 +219,5 @@ int main()
     //     recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
     // }
 
-    close(sockfd);
 } 
 
