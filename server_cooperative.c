@@ -12,22 +12,6 @@
 #define SA struct sockaddr
 
 
-void read_high_entropy_data(uint8_t * data, int len){
-    FILE* file_ptr = NULL;
-    char temp;
-    file_ptr =  fopen("/dev/random", "r");
-    for (int i = 0; i < len; i++){
-        temp = getc(file_ptr);
-        int t = atoi(&temp);
-        if (t > 1){
-            t = 1;
-        }
-        data[i] = t;
-        printf("%d\n", data[i]);
-    }
-
-
-}
 
 void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr, struct read_json){
     
@@ -82,27 +66,17 @@ void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, str
 int tokenize(char * buff, struct json * tcp_info )
 {
     char * temp;
-    //temp = strsep(&buff, " ");
-    //temp = strsep(&buff, " ");
     tcp_info->server_ip = strsep(&buff, " ");
-    //printf("%s\n", tcp_info->server_ip);
     tcp_info->src_prt_udp = strsep(&buff, " ");
-    //printf("%s\n", tcp_info->src_prt_udp);
     tcp_info->dest_prt_udp = strsep(&buff, " ");
-    //printf("%s\n", tcp_info->dest_prt_udp);
     tcp_info->dest_prt_tcp_head = strsep(&buff, " ");
-    //printf("%s\n", tcp_info->dest_prt_tcp_head);
     tcp_info->dest_prt_tcp_tail = strsep(&buff, " ");
-    //printf("%s\n", tcp_info->dest_prt_tcp_tail);
     tcp_info->prt_tcp = strsep(&buff, " ");
-    //printf("%s\n", tcp_info->prt_tcp);
     tcp_info->payload_sz = atoi(strsep(&buff, " "));
-    //printf("%d\n", tcp_info->payload_sz);
     tcp_info->in_time = atoi(strsep(&buff, " "));
-    //printf("%d\n", tcp_info->in_time);
     tcp_info->num_of_packets = atoi(strsep(&buff, " "));
-    //printf("%d\n", tcp_info->num_of_packets);
     tcp_info->TTL = atoi(strsep(&buff, " "));
+
     if (tcp_info->server_ip == NULL || tcp_info->src_prt_udp == NULL ||
         tcp_info->dest_prt_udp == NULL || tcp_info->dest_prt_tcp_head == NULL ||
         tcp_info->dest_prt_tcp_tail == NULL || tcp_info->prt_tcp == NULL ||
@@ -114,44 +88,10 @@ int tokenize(char * buff, struct json * tcp_info )
         return 0;
     }
     return 1;
-    //printf("%d\n", tcp_info->TTL);
-    //printf("%s\n",temp);
+
 }
 
 
-// Function designed for chat between client and server. 
-void func(int sockfd, char * buff, int len, struct json * tcp_info) 
-{   
-    char new[8] = "ERROR!!";
-    char success[8] = "SUCCESS";
-
-    bzero(buff, 1000); 
-
-    // read the message from client and copy it in buffer 
-    recv(sockfd, buff, 1000, 0); 
-    // print buffer which contains the client contents 
-    printf("From client: %s\n", buff); 
-    int ret = tokenize(buff, tcp_info);
-    if ( ret == 0 )
-    {
-        send(sockfd, new, 8, 0);
-
-        close(sockfd);
-        exit(1);
-    }
-    else
-    {
-        send(sockfd, success, 8, 0);
-        return;
-    }
-
-    //bzero(buff, 1000); 
-    //n = 0; 
-
-    // and send that buffer to client 
-    //write(sockfd, buff, sizeof(buff)); 
- 
-} 
   
 // Driver function 
 int main() 
@@ -172,7 +112,7 @@ int main()
     for (int i=0;i<6000;i++){        
         recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
     }
-    
+
     close(sockfd);
 } 
 

@@ -11,6 +11,24 @@
 #define SA struct sockaddr 
 #define IP_DONTFRAG 1
 
+
+void read_high_entropy_data(uint8_t * data, int len){
+    FILE* file_ptr = NULL;
+    char temp;
+    file_ptr =  fopen("/dev/random", "r");
+    for (int i = 0; i < len; i++){
+        temp = getc(file_ptr);
+        int t = atoi(&temp);
+        if (t > 1){
+            t = 1;
+        }
+        data[i] = t;
+        printf("%d\n", data[i]);
+    }
+
+
+}
+
 void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
     
     *sockfd = socket(AF_INET, socket_type, 0); 
