@@ -155,15 +155,20 @@ int main()
     }
 
     //let's setup UDP high entropy payload 
+   read_high_entropy_data(data,packet_info.payload_sz);
 
+    for (int i=0;i<packet_info.num_of_packets;i++){
+
+        if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
+            fprintf (stderr, "ERROR: unable to send UDP dataset to server.\n");
+            exit (EXIT_FAILURE);
+        } 
+        else 
+            printf("packet %d has been sent successfully\n",(i+1)); 
+    }
     close(sockfd); 
 
 }   
-
-
-
-
-
 
 
 
