@@ -14,10 +14,35 @@
 
 
 
+// Function designed for chat between client and server. 
+void func(int sockfd, char * buff, int len, struct json * tcp_info) 
+{   
+	char new[8] = "ERROR!!";
+	char success[8] = "SUCCESS";
+
+    bzero(buff, 1000); 
+
+    // read the message from client and copy it in buffer 
+    recv(sockfd, buff, 1000, 0); 
+    // print buffer which contains the client contents 
+    printf("From client: %s\n", buff); 
+    int ret = tokenize(buff, tcp_info);
+    if ( ret == 0 )
+    {
+    	send(sockfd, new, 8, 0);
+
+    	close(sockfd);
+    	exit(1);
+    }
+    else
+    {
+    	send(sockfd, success, 8, 0);
+    	return;
+    }
+
 void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr, struct read_json){
     
     int connfd,len;
-
 
     // socket create and verification 
     *sockfd = socket(AF_INET, socket_type, 0); 
