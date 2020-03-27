@@ -1,7 +1,7 @@
 {
-	"Server IP" : "192.168.86.211",
-	"Source Port Number UDP" : "8080",
-	"Destination Port Number UDP" : "8080",
+	"Server IP" : "192.168.86.212",
+	"Source Port Number UDP" : "9876",
+	"Destination Port Number UDP" : "8765",
 	"Destination Port Number TCP Head" : "8081",
 	"Destination Port Number TCP Tail" : "8081",
 	"Port Number for TCP" : "8081",
