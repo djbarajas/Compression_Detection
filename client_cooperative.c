@@ -23,7 +23,6 @@ void read_high_entropy_data(uint8_t * data, int len){
             t = 1;
         }
         data[i] = t;
-        printf("%d\n", data[i]);
     }
 
 
@@ -131,38 +130,65 @@ int main()
     /**
         Probing phase [send in UDP packet trains of high and low entropy data each of quantity 6000] 
     */
+    struct sockaddr_in addr, srcaddr;
+    int fd;
 
+    if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+        perror("socket");
+        exit(1);
+    }
 
-    packet_setup(packet_info, SOCK_DGRAM, &sockfd,&clientaddr);
-    clientaddr.sin_port = htons(atoi(packet_info.src_prt_udp));
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = inet_addr(packet_info.server_ip);
+    addr.sin_port = htons(atoi(packet_info.dest_prt_udp));
+
+    memset(&srcaddr, 0, sizeof(srcaddr));
+    srcaddr.sin_family = AF_INET;
+    srcaddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    srcaddr.sin_port = htons(atoi(packet_info.src_prt_udp));
     val=IP_PMTUDISC_DO;
-    if (setsockopt(sockfd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val))<0){
+
+    if (setsockopt(fd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val))<0){
         printf("unable to set DONT_FRAGMENT bit...\n"); 
         exit(0); 
     }
     else
         printf("DONT_FRAGMENT bit set successfully..\n");
 
-
-    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
-        printf("connection with the server failed...\n"); 
-        exit(0); 
-    } 
-    else
-        printf("connected to the server..\n"); 
+    if (bind(fd, (struct sockaddr *) &srcaddr, sizeof(srcaddr)) < 0) {
+        perror("bind");
+        exit(1);
+    }
 
 
     //let's setup UDP low entropy payload 
 
-    data = allocate_ustrmem(16);
-    clientlen = sizeof(clientaddr);
+    data = allocate_ustrmem(packet_info.payload_sz);
+    clientlen = sizeof(addr);
 
     for (int i=0;i<packet_info.num_of_packets;i++){
 
-        if(sendto(sockfd,data,sizeof(data),0,(struct sockaddr *) &clientaddr,clientlen)<=0){
+        if(sendto(fd,data,packet_info.payload_sz,0,(struct sockaddr *) &addr,clientlen)<=0){
             continue;
         }  
     }
+
+    sleep(packet_info.in_time);
+
+    bzero(data, packet_info.payload_sz);
+
+    //read_high_entropy_data(&data[16], packet_info.payload_sz-16);
+
+    for (int i=0;i<packet_info.num_of_packets;i++){
+
+        if(sendto(fd,data,packet_info.payload_sz,0,(struct sockaddr *) &addr,clientlen)<=0){
+            continue;
+        }  
+    }
+
+    printf("All packages sent closing connection\n");
+
 
     //let's setup UDP high entropy payload 
 

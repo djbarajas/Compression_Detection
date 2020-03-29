@@ -1,5 +1,5 @@
 {
-	"Server IP" : "192.168.86.212",
+	"Server IP" : "192.168.86.215",
 	"Source Port Number UDP" : "9876",
 	"Destination Port Number UDP" : "8765",
 	"Destination Port Number TCP Head" : "8081",
@@ -7,6 +7,6 @@
 	"Port Number for TCP" : "8081",
 	"Payload Size" : "1000",
 	"Inter-Measurement Time" : "15",
-	"Number of UDP Packets" : "6000",
+	"Number of UDP Packets" : "60",
 	"TTL" : "255"
 }
