@@ -5,8 +5,8 @@
 	"Destination Port Number TCP Head" : "8081",
 	"Destination Port Number TCP Tail" : "8081",
 	"Port Number for TCP" : "8081",
-	"Payload Size" : "1000",
+	"Payload Size" : "10",
 	"Inter-Measurement Time" : "15",
-	"Number of UDP Packets" : "60",
+	"Number of UDP Packets" : "1",
 	"TTL" : "255"
 }

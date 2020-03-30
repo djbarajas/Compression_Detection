@@ -10,7 +10,8 @@
 #include "read_json.h"
 #define SA struct sockaddr 
 #define IP_DONTFRAG 1
-
+#define PORT     8080 
+#define MAXLINE 1024 
 
 void read_high_entropy_data(uint8_t * data, int len){
     FILE* file_ptr = NULL;
@@ -80,6 +81,43 @@ void func(int sockfd, char * buff, int len)
     bzero(buff, len); 
     write(sockfd, buff, len); 
 } 
+
+void send_packet_train(struct json* packet_info)
+{
+    int sockfd; 
+    char buffer[MAXLINE]; 
+    char *hello = "Hello from client"; 
+    struct sockaddr_in     servaddr; 
+  
+    // Creating socket file descriptor 
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+        perror("socket creation failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+  
+    memset(&servaddr, 0, sizeof(servaddr)); 
+      
+    // Filling server information 
+    servaddr.sin_family = AF_INET;
+    printf("dest prt : %d\n", atoi(packet_info->dest_prt_udp)); 
+    servaddr.sin_port = htons(atoi(packet_info->dest_prt_udp)); 
+    servaddr.sin_addr.s_addr = inet_addr(packet_info->server_ip); 
+      
+    int n, len; 
+      
+    sendto(sockfd, (const char *)hello, strlen(hello), 
+        MSG_CONFIRM, (const struct sockaddr *) &servaddr,  
+            sizeof(servaddr)); 
+    printf("Hello message sent.\n"); 
+          
+    n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
+                MSG_WAITALL, (struct sockaddr *) &servaddr, 
+                &len); 
+    buffer[n] = '\0'; 
+    printf("Server : %s\n", buffer); 
+  
+    close(sockfd); 
+}
   
 int main() 
 { 
@@ -130,6 +168,9 @@ int main()
     /**
         Probing phase [send in UDP packet trains of high and low entropy data each of quantity 6000] 
     */
+    sleep (55);
+
+    //send_packet_train(&packet_info);
     struct sockaddr_in addr, srcaddr;
     int fd;
 
@@ -161,6 +202,11 @@ int main()
         exit(1);
     }
 
+    // if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) 
+    // { 
+    //     printf("\n Error : Connect Failed \n"); 
+    //     exit(0); 
+    // } 
 
     //let's setup UDP low entropy payload 
 
@@ -169,7 +215,7 @@ int main()
 
     for (int i=0;i<packet_info.num_of_packets;i++){
 
-        if(sendto(fd,data,packet_info.payload_sz,0,(struct sockaddr *) &addr,clientlen)<=0){
+        if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
             continue;
         }  
     }
@@ -182,7 +228,7 @@ int main()
 
     for (int i=0;i<packet_info.num_of_packets;i++){
 
-        if(sendto(fd,data,packet_info.payload_sz,0,(struct sockaddr *) &addr,clientlen)<=0){
+        if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
             continue;
         }  
     }
