@@ -11,20 +11,37 @@
 #include <time.h>
 #include "read_json.h"
 #define SA struct sockaddr
+#define PORT     8080 
+#define MAXLINE 1024 
 
 int tokenize(char * buff, struct json * tcp_info )
 {
     char * temp;
+    while (*buff == ' ')
+    {
+        buff++;
+    }
+
     tcp_info->server_ip = strsep(&buff, " ");
+    //printf("SERV IP%s\n",tcp_info->server_ip );
     tcp_info->src_prt_udp = strsep(&buff, " ");
+   // printf("SRCPRT UDP%s\n", tcp_info->src_prt_udp);
     tcp_info->dest_prt_udp = strsep(&buff, " ");
+   // printf("DESTPRT UDP %s\n", tcp_info->dest_prt_udp);
     tcp_info->dest_prt_tcp_head = strsep(&buff, " ");
+    //printf("PRTTCP HEAD %s\n", tcp_info->dest_prt_tcp_head);
     tcp_info->dest_prt_tcp_tail = strsep(&buff, " ");
+   // printf("PRTTCP TAIL %s\n", tcp_info->dest_prt_tcp_tail);
     tcp_info->prt_tcp = strsep(&buff, " ");
+    //printf("PRTTCP %s\n", tcp_info->prt_tcp);
     tcp_info->payload_sz = atoi(strsep(&buff, " "));
+   // printf("SZ %d\n", tcp_info->payload_sz);
     tcp_info->in_time = atoi(strsep(&buff, " "));
+    //printf("IN %d\n", tcp_info->in_time);
     tcp_info->num_of_packets = atoi(strsep(&buff, " "));
+    //printf("NOP %d\n", tcp_info->num_of_packets);
     tcp_info->TTL = atoi(strsep(&buff, " "));
+   // printf("TTL %d\n", tcp_info->TTL);
     if (tcp_info->server_ip == NULL || tcp_info->src_prt_udp == NULL ||
         tcp_info->dest_prt_udp == NULL || tcp_info->dest_prt_tcp_head == NULL ||
         tcp_info->dest_prt_tcp_tail == NULL || tcp_info->prt_tcp == NULL ||
@@ -120,6 +137,51 @@ int server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, stru
 }
 
 
+void recv_udp_train(struct json* tcp_info )
+{
+    int sockfd; 
+    char buffer[MAXLINE]; 
+    char *hello = "Hello from server"; 
+    struct sockaddr_in servaddr, cliaddr; 
+      
+    // Creating socket file descriptor 
+    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+        perror("socket creation failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+      
+    memset(&servaddr, 0, sizeof(servaddr)); 
+    memset(&cliaddr, 0, sizeof(cliaddr)); 
+      
+    // Filling server information 
+    servaddr.sin_family    = AF_INET; // IPv4 
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    printf("dest prt %d\n", atoi(tcp_info->dest_prt_udp) );
+    servaddr.sin_port = htons(atoi(tcp_info->dest_prt_udp)); 
+      
+    // Bind the socket with the server address 
+    if ( bind(sockfd, (const struct sockaddr *)&servaddr,  
+            sizeof(servaddr)) < 0 ) 
+    { 
+        perror("bind failed"); 
+        exit(EXIT_FAILURE); 
+    } 
+      
+    int len, n; 
+  
+    len = sizeof(cliaddr);  //len is value/resuslt 
+  
+    n = recvfrom(sockfd, (char *)buffer, MAXLINE,  
+                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
+                &len); 
+    buffer[n] = '\0'; 
+    printf("Client : %s\n", buffer); 
+    sendto(sockfd, (const char *)hello, strlen(hello),  
+        MSG_CONFIRM, (const struct sockaddr *) &cliaddr, 
+            len); 
+    printf("Hello message sent.\n"); 
+}
+
   
 // Driver function 
 int main() 
@@ -134,20 +196,23 @@ int main()
     printf("Ending connection\n");
     close(sockfd);
 
-    sleep(20);
+    sleep(50);
+
+   //recv_udp_train(&tcp_info);
 
 
     char buffer[1024];  
-    struct sockaddr_in  cliaddr; 
+    struct sockaddr_in  cliaddr;
+    int fd; 
       
     // Creating socket file descriptor 
-    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+    if ( (fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
         perror("socket creation failed"); 
         exit(EXIT_FAILURE); 
     } 
       
     memset(&servaddr, 0, sizeof(servaddr)); 
-    memset(&cliaddr, 0, sizeof(cliaddr)); 
+
       
     // Filling server information 
     servaddr.sin_family    = AF_INET; // IPv4 
@@ -155,7 +220,7 @@ int main()
     servaddr.sin_port = htons(atoi(tcp_info.dest_prt_udp)); 
       
     // Bind the socket with the server address 
-    if ( bind(sockfd, (const struct sockaddr *)&servaddr,  
+    if ( bind(fd, (const struct sockaddr *)&servaddr,  
             sizeof(servaddr)) < 0 ) 
     { 
         perror("bind failed"); 
@@ -175,10 +240,10 @@ int main()
     start_t = clock();
     for (int i=0;i<tcp_info.num_of_packets;i++){ 
       
-        n = recvfrom(sockfd, (char *)buffer, tcp_info.payload_sz,  
+        n = recvfrom(fd, (char *)buffer, tcp_info.payload_sz,  
                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
                &len); 
-        //recv(sockfd, buffer, tcp_info.payload_sz, 0);
+
     }
     end_t = clock();
     total_t = (((double)end_t) - ((double)start_t)) / ((double)CLOCKS_PER_SEC);
@@ -189,7 +254,7 @@ int main()
 
     start_t = clock();
     for (int i=0;i<tcp_info.num_of_packets;i++){        
-        n = recvfrom(sockfd, (char *)buffer, tcp_info.payload_sz,  
+        n = recvfrom(fd, (char *)buffer, tcp_info.payload_sz,  
                 MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
                 &len);
     }
@@ -225,7 +290,7 @@ int main()
 
     // total_time_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
 
-    close(sockfd);
+    //close(sockfd);
     //setup and open new connection for server (we are currently expecting UDP packets that divide to two parts)    
     // server_setup(SOCK_DGRAM,&sockfd,&servaddr,&peer_addr);
     // // we want to recieve the low entropy packet train (Quantity: 6000)    
