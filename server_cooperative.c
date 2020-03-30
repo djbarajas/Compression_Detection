@@ -14,7 +14,6 @@
 
 int tokenize(char * buff, struct json * tcp_info )
 {
-    printf("got\n");
     char * temp;
     tcp_info->server_ip = strsep(&buff, " ");
     tcp_info->src_prt_udp = strsep(&buff, " ");
@@ -135,9 +134,10 @@ int main()
     printf("Ending connection\n");
     close(sockfd);
 
+    sleep(20);
 
-    char buffer[1024]; 
-    char *hello = "Hello from server"; 
+
+    char buffer[1024];  
     struct sockaddr_in  cliaddr; 
       
     // Creating socket file descriptor 
@@ -151,7 +151,7 @@ int main()
       
     // Filling server information 
     servaddr.sin_family    = AF_INET; // IPv4 
-    servaddr.sin_addr.s_addr = INADDR_ANY; 
+    servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
     servaddr.sin_port = htons(atoi(tcp_info.dest_prt_udp)); 
       
     // Bind the socket with the server address 
@@ -171,16 +171,34 @@ int main()
     double total_t;
   
     len = sizeof(cliaddr);  //len is value/resuslt 
+
+    start_t = clock();
+    for (int i=0;i<tcp_info.num_of_packets;i++){ 
+      
+        n = recvfrom(sockfd, (char *)buffer, tcp_info.payload_sz,  
+               MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
+               &len); 
+        //recv(sockfd, buffer, tcp_info.payload_sz, 0);
+    }
+    end_t = clock();
+    total_t = (((double)end_t) - ((double)start_t)) / ((double)CLOCKS_PER_SEC);
+    total_t = total_t * 100;
+    printf("time : %f\n", total_t);
+
+    sleep(tcp_info.in_time);
+
     start_t = clock();
     for (int i=0;i<tcp_info.num_of_packets;i++){        
-        n = recvfrom(sockfd, (char *)buffer, 1024,  
+        n = recvfrom(sockfd, (char *)buffer, tcp_info.payload_sz,  
                 MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
                 &len);
     }
     end_t = clock();
     total_t = (((double)end_t) - ((double)start_t)) / ((double)CLOCKS_PER_SEC);
     total_t = total_t * 100;
-    printf("time : %f\n", total_t);
+    printf("time 2 : %f\n", total_t);    
+
+
     close(sockfd);
 
       // we want to recieve the low entropy packet train (Quantity: 6000)    
