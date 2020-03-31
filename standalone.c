@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include "read_json.h"
 
-/* this class is responsible for compression detection with an uncooperative server 
+/*
+	this class is responsible for compression detection with an uncooperative server 
 	uncooperative denotes inability to onbtain control of the server (but its still responsive)
 */
 
@@ -112,11 +113,11 @@ uint16_t checksum (uint16_t *addr, int len){
 int main(int argc, char **argv){
 
   /* 
-    * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
+      unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
       packet data specifications (layers and payload)
   */
 
-	if (argc != 2){
+  if (argc != 2){
       fprintf (stderr, "ERROR: Too few or many arguments.\n");
       exit (EXIT_FAILURE);
   }
@@ -124,7 +125,7 @@ int main(int argc, char **argv){
   //read JSON file to obtain data (TTL will be our main variable)
   struct json packet_info;
   char buff[1000] = {0};
-	read_json(&packet_info, argv[1], buff);
+  read_json(&packet_info, argv[1], buff);
 
   // prepare ip header for TCP manually
   int* ip_flags;
@@ -155,5 +156,5 @@ int main(int argc, char **argv){
   //calculate the difference between arrival time of the two RST packets for compression analysis (loss may occur)
 	
 	
-	return 0;
+  return 0;
 }
