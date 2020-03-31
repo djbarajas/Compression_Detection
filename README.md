@@ -1,2 +1,1 @@
 # Compression Detection
-<hr>
