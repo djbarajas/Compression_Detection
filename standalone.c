@@ -2,7 +2,7 @@
 #include "read_json.h"
 
 /* this class is responsible for compression detection with an uncooperative server 
-	uncooperative denotes inability to onbtain control of the server (but its still responsive)
+	uncooperative denotes inability to obtain control over the server (but its still responsive)
 */
 
 // we have two different checksums: One for our UDP packets and the other for the TCP connection.
@@ -111,9 +111,24 @@ uint16_t checksum (uint16_t *addr, int len){
 
 int main(){
 	struct json packet_info;
-	
+	int sockfd;
 
 	read_json(&packet_info, "myconfig.json", buff);
+
+	sockfd = socket (PF_INET, SOCK_RAW, IPPROTO_RAW);
+	if (sockfd == -1){
+	    fprintf (stderr, "ERROR: Failed to build socket\n");
+	    exit (EXIT_FAILURE);
+	}
+
+  // start with a single head SYN packet (to port x) --> this will trigger RST packets to be sent from the server
+
+  // follow it with a train of UDP packets (ignore ICMP packets sent back in this part)
+
+  // end with a single tail SYN packet (to port y) --> this will trigger RST packets to be sent from the server
+
+  //calculate the difference between arrival time of the two RST packets for compression analysis (loss may occur)
+	
 	
 	return 0;
 }
