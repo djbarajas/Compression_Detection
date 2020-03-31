@@ -100,7 +100,7 @@ uint16_t checksum (uint16_t *addr, int len){
   // increasing the chances of a collision.
   // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
   while (sum >> 16) {
-    sum = (sum & 0xffff) + (sum >> 16);
+    sum = (sum & 0xffff)+(sum >> 16);
   }
 
   // Checksum is one's compliment of sum.
@@ -133,8 +133,8 @@ int main(int argc, char **argv){
   ip_header.ip_hl =IP4_HDRLEN/sizeof(uint32_t);
   ip_header.ip_v =4;
   ip_header.ip_tos = 0;
-  ip_header.ip_len = htons (IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
-  ip_header.ip_id= htons (0);
+  ip_header.ip_len = htons(IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
+  ip_header.ip_id= htons(0);
 
   ip_flags[0] =0; // static unused bit
   ip_flags[1]=0; // DF flag
