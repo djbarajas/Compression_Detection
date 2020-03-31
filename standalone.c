@@ -2,7 +2,7 @@
 #include "read_json.h"
 
 /* this class is responsible for compression detection with an uncooperative server 
-	uncooperative denotes inability to obtain control over the server (but its still responsive)
+	uncooperative denotes inability to onbtain control of the server (but its still responsive)
 */
 
 // we have two different checksums: One for our UDP packets and the other for the TCP connection.
@@ -109,17 +109,42 @@ uint16_t checksum (uint16_t *addr, int len){
 }
 
 
-int main(){
-	struct json packet_info;
-	int sockfd;
+int main(int argc, char **argv){
 
-	read_json(&packet_info, "myconfig.json", buff);
+  /* 
+    * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
+      packet data specifications (layers and payload)
+  */
 
-	sockfd = socket (PF_INET, SOCK_RAW, IPPROTO_RAW);
-	if (sockfd == -1){
-	    fprintf (stderr, "ERROR: Failed to build socket\n");
-	    exit (EXIT_FAILURE);
-	}
+	if (argc != 2){
+      fprintf (stderr, "ERROR: Too few or many arguments.\n");
+      exit (EXIT_FAILURE);
+  }
+
+  //read JSON file to obtain data (TTL will be our main variable)
+  struct json packet_info;
+  char buff[1000] = {0};
+	read_json(&packet_info, argv[1], buff);
+
+  // prepare ip header for TCP manually
+  int* ip_flags;
+  struct ip ip_header;
+  ip_header.ip_hl =IP4_HDRLEN/sizeof(uint32_t);
+  ip_header.ip_v =4;
+  ip_header.ip_tos = 0;
+  ip_header.ip_len = htons (IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
+  ip_header.ip_id= htons (0);
+
+  ip_flags[0] =0; // static unused bit
+  ip_flags[1]=0; // DF flag
+  ip_flags[2]=0; // MF flag
+  ip_flags[3]=0; // fragment offset
+
+  // position flag results into corresponding sectors in ip_off by shifting the bits to correct order 
+  ip_header.ip_off = htons ((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
+
+  ip_header.ip_ttl =packet_info.TTL;
+  iphdr.ip_p = IPPROTO_TCP;
 
   // start with a single head SYN packet (to port x) --> this will trigger RST packets to be sent from the server
 
