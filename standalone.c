@@ -142,7 +142,7 @@ int main(int argc, char **argv){
   ip_flags[3]=0; // fragment offset
 
   // position flag results into corresponding sectors in ip_off by shifting the bits to correct order 
-  ip_header.ip_off = htons ((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
+  ip_header.ip_off = htons((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
 
   ip_header.ip_ttl =packet_info.TTL;
   iphdr.ip_p = IPPROTO_TCP;
