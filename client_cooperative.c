@@ -168,7 +168,7 @@ int main()
     /**
         Probing phase [send in UDP packet trains of high and low entropy data each of quantity 6000] 
     */
-    sleep (55);
+    sleep (25);
 
     //send_packet_train(&packet_info);
     struct sockaddr_in addr, srcaddr;
@@ -238,8 +238,39 @@ int main()
 
     //let's setup UDP high entropy payload 
 
-    close(sockfd); 
+    close(fd); 
 
+    sleep(34);
+
+    struct sockaddr_in servaddr; 
+  
+    // socket create and varification 
+    sockfd = socket(AF_INET, SOCK_STREAM, 0); 
+    if (sockfd == -1) { 
+        printf("socket creation failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("Socket successfully created..\n"); 
+    bzero(&servaddr, sizeof(servaddr)); 
+  
+    // assign IP, PORT 
+    servaddr.sin_family = AF_INET; 
+    servaddr.sin_addr.s_addr = inet_addr(packet_info.server_ip); 
+    servaddr.sin_port = htons(8082); 
+  
+    // connect the client socket to server socket 
+    if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) { 
+        printf("connection with the server failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("connected to the server..\n"); 
+    bzero(buff, 1000); 
+    send(sockfd, buff, 1000, 0); 
+    bzero(buff, 1000); 
+    recv(sockfd, buff, 50, 0);
+    printf("%s\n",buff); 
 }   
 
 
