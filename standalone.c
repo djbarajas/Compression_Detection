@@ -1,3 +1,7 @@
+/*
+    CHECK ADDR_INFO_TERM
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -11,8 +15,7 @@
 #include <errno.h>
 #include "read_json.h"
 
-/*
-	this class is responsible for compression detection with an uncooperative server 
+/* this class is responsible for compression detection with an uncooperative server 
 	uncooperative denotes inability to onbtain control of the server (but its still responsive)
 */
 
@@ -110,7 +113,7 @@ uint16_t checksum (uint16_t *addr, int len){
   // increasing the chances of a collision.
   // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
   while (sum >> 16) {
-    sum = (sum & 0xffff)+(sum >> 16);
+    sum = (sum & 0xffff) + (sum >> 16);
   }
 
   // Checksum is one's compliment of sum.
@@ -123,7 +126,7 @@ uint16_t checksum (uint16_t *addr, int len){
 int main(int argc, char **argv){
 
   /* 
-      unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
+    * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
       packet data specifications (layers and payload)
   */
 
@@ -132,10 +135,19 @@ int main(int argc, char **argv){
       exit (EXIT_FAILURE);
   }
 
+  int recv_info,send_info;
+
   //read JSON file to obtain data (TTL will be our main variable)
   struct json packet_info;
   char buff[1000] = {0};
   read_json(&packet_info, argv[1], buff);
+
+  // prepare source and destination addresses
+  char src_ip, dest_ip;
+  src_ip = allocate_strmem (INET_ADDRSTRLEN);
+  dst_ip = allocate_strmem (INET_ADDRSTRLEN);
+  strcpy (src_ip, "1.2.3.4"); 
+  strcpy (dest_ip, packet_info.server_ip);
 
   // prepare ip header for TCP manually
   int* ip_flags;
@@ -143,19 +155,41 @@ int main(int argc, char **argv){
   ip_header.ip_hl =IP4_HDRLEN/sizeof(uint32_t);
   ip_header.ip_v =4;
   ip_header.ip_tos = 0;
-  ip_header.ip_len = htons(IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
-  ip_header.ip_id= htons(0);
+  ip_header.ip_len = htons (IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
+  ip_header.ip_id= htons (0);
 
-  ip_flags[0] =0; // static unused bit
+  ip_flags[0]=0; // static unused bit
   ip_flags[1]=0; // DF flag
   ip_flags[2]=0; // MF flag
   ip_flags[3]=0; // fragment offset
 
   // position flag results into corresponding sectors in ip_off by shifting the bits to correct order 
-  ip_header.ip_off = htons((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
+  ip_header.ip_off = htons ((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
 
   ip_header.ip_ttl =packet_info.TTL;
-  iphdr.ip_p = IPPROTO_TCP;
+  ip_header.ip_p = IPPROTO_TCP;
+
+  // get our supportive server information
+  struct addrinfo addr_info_init, addr_info_term;
+  memset (&addr_info_init,0,sizeof(struct addrinfo));
+  addr_info_init.ai_family = AF_INET;
+  addr_info_init.ai_socktype = SOCK_STREAM;
+  addr_info_init.ai_flags = hints.ai_flags | AI_CANONNAME;
+
+  if ((recv_info = getaddrinfo(dest_ip,NULL,&addr_info_init,&addr_info_term))!= 0) {
+      fprintf (stderr, "ERROR: Failed to recieve address information.\n");
+      exit (EXIT_FAILURE);
+  }
+
+
+  /* before setting our src and dest addresses in our IP header, we should convert the string representations 
+     into the IP address format of type IPv4 (dot notation)
+  */
+  // int convert_addr;
+  // if ((convert_addr = inet_pton(AF_INET, src_addr_ip, &(iphdr.ip_src))) != 1){
+  //     fprintf (stderr, "ERROR: Failed to convert IP address.\n");
+  //     exit (EXIT_FAILURE);
+  // }
 
   // start with a single head SYN packet (to port x) --> this will trigger RST packets to be sent from the server
 
@@ -164,7 +198,6 @@ int main(int argc, char **argv){
   // end with a single tail SYN packet (to port y) --> this will trigger RST packets to be sent from the server
 
   //calculate the difference between arrival time of the two RST packets for compression analysis (loss may occur)
-	
 	
   return 0;
 }
