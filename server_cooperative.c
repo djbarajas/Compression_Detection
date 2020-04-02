@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
@@ -188,6 +189,7 @@ int main()
     int sockfd, connfd, len; 
     struct sockaddr_in servaddr, cli; 
     struct json tcp_info; 
+
     char buff[1000];
   
     connfd = server_setup(SOCK_STREAM,&sockfd,&servaddr,&cli);
@@ -321,7 +323,42 @@ int main()
     else
     {
         strcpy(compression, "COMPRESSION NOT DETECTED");
+
     }
+    end_high = clock();
+
+    delta_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
+
+    // now we will do the check: If (∆tH − ∆tL) is bigger than our threshold (100 ms) then we have compression
+
+    double threshold = 0.1; // convert to seconds
+
+    bzero(buff, sizeof(buff));
+
+    if((delta_high-delta_low)>threshold){
+        strcpy(buff,"Compression detected!");
+    } 
+    else{
+        strcpy(buff,"No compression was detected.");
+    }
+    close(sockfd); 
+
+    // now initialize a TCP connection that returns our compression findings to the client
+    struct sockaddr_in clientaddr;
+
+    packet_setup(tcp_info, SOCK_STREAM, &sockfd, &clientaddr);
+
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
+        printf("connection with the server failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("connected to the server..\n"); 
+  
+
+    send(sockfd, buff, (strlen(buff)+1), 0);
+
+
 
     // read the message from client and copy it in buffer 
     recv(sockfd, buff, 1000, 0);
@@ -332,6 +369,7 @@ int main()
 
     free(buffer);
     close(sockfd);
+
 
 
 } 

@@ -43,6 +43,7 @@ void set_struct(struct json * to_read, char * line, char * all)
 		to_read->prt_tcp = strdup(line);
 		to_read->prt_tcp = to_read->prt_tcp + strcspn(to_read->prt_tcp, ":") + 3;
 		*(to_read->prt_tcp + strcspn(to_read->prt_tcp, "\"")) = '\0';
+		sprintf(all , "%s %s", all, to_read->prt_tcp);
 	}
 	else if (strstr(line,"Payload Size") != NULL)
 	{
