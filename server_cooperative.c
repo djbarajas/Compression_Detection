@@ -331,23 +331,6 @@ int main()
 
     bzero(buff, sizeof(buff));
 
-    
-
-    // // now initialize a TCP connection that returns our compression findings to the client
-    // struct sockaddr_in clientaddr;
-
-    // packet_setup(tcp_info, SOCK_STREAM, &sockfd, &clientaddr);
-
-    // if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
-    //     printf("connection with the server failed...\n"); 
-    //     exit(0); 
-    // } 
-    // else
-    //     printf("connected to the server..\n"); 
-  
-
-
-
 
     // read the message from client and copy it in buffer 
     recv(sockfd, buff, 1000, 0);
