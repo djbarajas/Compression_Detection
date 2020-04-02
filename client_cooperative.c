@@ -231,6 +231,7 @@ int main()
     data = allocate_ustrmem(packet_info.payload_sz);
     clientlen = sizeof(addr);
 
+
     for (int i=0;i<packet_info.num_of_packets;i++){
         packet_id_setup(data, packet_id++);
         if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
@@ -255,6 +256,13 @@ int main()
 
 
     //let's setup UDP high entropy payload 
+   read_high_entropy_data(data,packet_info.payload_sz);
+    
+    // wait Inter-Measurement Time (γ) seconds before sending the next set of UDP packets
+    sleep(packet_info.in_time);
+    
+    for (int i=0;i<packet_info.num_of_packets;i++){
+
 
     close(fd); 
 
@@ -295,7 +303,5 @@ int main()
 
 
 
-
-
-
+} 
 

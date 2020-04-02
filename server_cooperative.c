@@ -6,6 +6,7 @@
 #include <netdb.h>
 #include <sys/types.h>
 #include <string.h>
+#include <time.h>
 #include <unistd.h>
 #include <arpa/inet.h>
 #include "read_json.h"
@@ -14,10 +15,35 @@
 
 
 
+// Function designed for chat between client and server. 
+void func(int sockfd, char * buff, int len, struct json * tcp_info) 
+{   
+	char new[8] = "ERROR!!";
+	char success[8] = "SUCCESS";
+
+    bzero(buff, 1000); 
+
+    // read the message from client and copy it in buffer 
+    recv(sockfd, buff, 1000, 0); 
+    // print buffer which contains the client contents 
+    printf("From client: %s\n", buff); 
+    int ret = tokenize(buff, tcp_info);
+    if ( ret == 0 )
+    {
+    	send(sockfd, new, 8, 0);
+
+    	close(sockfd);
+    	exit(1);
+    }
+    else
+    {
+    	send(sockfd, success, 8, 0);
+    	return;
+    }
+
 void server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr, struct read_json){
     
     int connfd,len;
-
 
     // socket create and verification 
     *sockfd = socket(AF_INET, socket_type, 0); 
@@ -102,20 +128,90 @@ int main()
     int sockfd, connfd, len; 
     struct sockaddr_in servaddr, cli; 
     struct json tcp_info; 
-    char buff[1000];
-  
+
+    // setup buffer holder for storing file information
+        char buff[1000]; 
+        bzero(buff, sizeof(buff)); 
+    
+    //setup container for the recieved udp packets
+    uint8_t* udp_payload;
+
+
+    //setup and open connection for server (we are currently expecting TCP packets)
+    server_setup(SOCK_STREAM,&sockfd,&servaddr,&peer_addr);
+
+
+    // read the message that we obtained from the TCP connection (our file information)
+    recv(sockfd, buff, sizeof(buff), 0); 
+
+
+    // did we recieve the coreect information? Let's find out! 
+    printf("From client: %s\n", buff); 
+
+    // After chatting close the socket 
+    close(sockfd); 
+	
+    // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
+    clock_t init_low, end_low;
+    double delta_low;
 
     //setup and open new connection for server (we are currently expecting UDP packets that divide to two parts)    
     server_setup(SOCK_DGRAM,&sockfd,&servaddr,&peer_addr);
-    // we want to recieve the low entropy packet train (Quantity: 6000)    
-    for (int i=0;i<6000;i++){        
-        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
-    }
-    // now we want to recieve the high entropy packet train (Quantity: 6000)    
-    for (int i=0;i<6000;i++){        
-        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
-    }
 
-    close(sockfd);
+    // we want to recieve the low entropy packet train (Quantity: 6000)    
+
+    init_low = clock();
+    for (int i=0;i<6000;i++){        
+        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
+    }
+    end_low = clock();
+
+    delta_low = ((double)(end_low- init_low))/CLOCKS_PER_SEC;
+
+    // setup time mesurements for the duration between the arrival of the first and last bit of the low entorpy data
+    clock_t init_high, end_high;
+    double delta_high;
+
+    // now we want to recieve the high entropy packet train (Quantity: 6000)    
+
+    init_high = clock();
+    for (int i=0;i<6000;i++){        
+        recvfrom(sockfd, udp_payload, sizeof(udp_payload),0, &recvd_sock,sizeof(recvd_sock));
+    }
+    end_high = clock();
+
+    delta_high = ((double)(end_high- init_high))/CLOCKS_PER_SEC;
+
+    // now we will do the check: If (∆tH − ∆tL) is bigger than our threshold (100 ms) then we have compression
+
+    double threshold = 0.1; // convert to seconds
+
+    bzero(buff, sizeof(buff));
+
+    if((delta_high-delta_low)>threshold){
+        strcpy(buff,"Compression detected!");
+    } 
+    else{
+        strcpy(buff,"No compression was detected.");
+    }
+    close(sockfd); 
+
+    // now initialize a TCP connection that returns our compression findings to the client
+    struct sockaddr_in clientaddr;
+
+    packet_setup(tcp_info, SOCK_STREAM, &sockfd, &clientaddr);
+
+    if (connect(sockfd, (SA*)&clientaddr, sizeof(clientaddr)) != 0) { 
+        printf("connection with the server failed...\n"); 
+        exit(0); 
+    } 
+    else
+        printf("connected to the server..\n"); 
+  
+
+    send(sockfd, buff, (strlen(buff)+1), 0);
+
+
+    close(sockfd); 
 } 
 
