@@ -13,6 +13,21 @@
 #define PORT     8080 
 #define MAXLINE 1024 
 
+
+/*
+* Packet ids
+*/
+void packet_id_setup (char* bin, unsigned int val)
+{
+    unsigned int copy_of_value = val;
+    for(int i = 15; i >= 0 ;i--)
+    {
+        bin[i] = (copy_of_value & 0b1) +'0';
+        copy_of_value >>= 1;
+    }
+}
+
+
 void read_high_entropy_data(uint8_t * data, int len){
     FILE* file_ptr = NULL;
     char temp;
@@ -121,9 +136,12 @@ void send_packet_train(struct json* packet_info)
   
 int main() 
 { 
+    char binary[16];
+    //print_bin_n(binary, 15);
     /**
         Pre-probing phase [send in packet information through TCP connection] 
     */
+    unsigned int packet_id = 0;
 
     int sockfd, connfd, val, clientlen; 
     struct sockaddr_in clientaddr, cli;
@@ -202,11 +220,11 @@ int main()
         exit(1);
     }
 
-    // if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) 
-    // { 
-    //     printf("\n Error : Connect Failed \n"); 
-    //     exit(0); 
-    // } 
+    if(connect(fd, (struct sockaddr *)&addr, sizeof(addr)) < 0) 
+    { 
+        printf("\n Error : Connect Failed \n"); 
+        exit(0); 
+    } 
 
     //let's setup UDP low entropy payload 
 
@@ -214,7 +232,7 @@ int main()
     clientlen = sizeof(addr);
 
     for (int i=0;i<packet_info.num_of_packets;i++){
-
+        packet_id_setup(data, packet_id++);
         if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
             continue;
         }  
@@ -224,10 +242,10 @@ int main()
 
     bzero(data, packet_info.payload_sz);
 
-    //read_high_entropy_data(&data[16], packet_info.payload_sz-16);
+    read_high_entropy_data(&data[16], packet_info.payload_sz-16);
 
     for (int i=0;i<packet_info.num_of_packets;i++){
-
+        packet_id_setup(data, packet_id++);
         if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
             continue;
         }  
