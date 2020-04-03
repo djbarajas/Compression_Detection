@@ -142,19 +142,20 @@ char * allocate_strmem(int len){
   }
 }
 
+// responsible for readjusting checksum value for checking the packet validity
 unsigned short csum(unsigned short *buf, int nwords){
 
-        unsigned long sum;
+   unsigned long sum;
 
-        for(sum=0; nwords>0; nwords--)
+   for(sum=0; nwords>0; nwords--)
 
-                sum += *buf++;
+          sum += *buf++;
 
-        sum = (sum >> 16) + (sum &0xffff);
+   sum = (sum >> 16) + (sum &0xffff);
 
-        sum += (sum >> 16);
+   sum += (sum >> 16);
 
-        return (unsigned short)(~sum);
+   return (unsigned short)(~sum);
 
 }
 
