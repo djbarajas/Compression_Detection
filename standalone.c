@@ -1,6 +1,7 @@
-  /*
-    CECK [ADDR_INFO_TERM]
-  */
+/*
+   CHECK [ADDR_INFO_TERM]
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,14 +16,14 @@
 #include "read_json.h"
 
 /* 
-	*this class is responsible for compression detection with an uncooperative server* 
-	*uncooperative denotes inability to onbtain control of the server (but its still responsive)*
+  *this class is responsible for compression detection with an uncooperative server* 
+  *uncooperative denotes inability to obtain control of the server (but its still responsive)*
 */
 
 // we have two different checksums: One for our UDP packets and the other for the TCP connection.
 
 // Build IPv4 UDP pseudo-header and call checksum function.
-uint16_t udp4_checksum (struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen){
+uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen){
   char buf[IP_MAXPACKET];
   char *ptr;
   int chksumlen = 0;
@@ -87,13 +88,13 @@ uint16_t udp4_checksum (struct ip iphdr, struct udphdr udphdr, uint8_t *payload,
     chksumlen++;
   }
 
-  return checksum ((uint16_t *) buf, chksumlen);
+  return checksum((uint16_t *)buf, chksumlen);
 }
 
 
 // Computing the internet checksum (RFC 1071).
 // Note that the internet checksum does not preclude collisions.
-uint16_t checksum (uint16_t *addr, int len){
+uint16_t checksum(uint16_t *addr, int len){
   int count = len;
   register uint32_t sum = 0;
   uint16_t answer = 0;
@@ -122,11 +123,46 @@ uint16_t checksum (uint16_t *addr, int len){
   return (answer);
 }
 
+// Allocate memory for an array of chars.
+char * allocate_strmem(int len){
+  void *tmp;
+
+  if (len <= 0) {
+    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_strmem().\n", len);
+    exit (EXIT_FAILURE);
+  }
+
+  tmp = (char *) malloc (len * sizeof (char));
+  if (tmp != NULL) {
+    memset (tmp, 0, len * sizeof (char));
+    return (tmp);
+  } else {
+    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_strmem().\n");
+    exit (EXIT_FAILURE);
+  }
+}
+
+unsigned short csum(unsigned short *buf, int nwords){
+
+        unsigned long sum;
+
+        for(sum=0; nwords>0; nwords--)
+
+                sum += *buf++;
+
+        sum = (sum >> 16) + (sum &0xffff);
+
+        sum += (sum >> 16);
+
+        return (unsigned short)(~sum);
+
+}
+
 
 int main(int argc, char **argv){
 
   /* 
-    * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
+      unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
       packet data specifications (layers and payload)
   */
 
@@ -137,7 +173,6 @@ int main(int argc, char **argv){
 
   // initialize socket connection with the start of the client
   int sockfd = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
-
   if (sockfd == -1) { 
     fprintf (stderr, "ERROR: socket creation failed...\n");
     exit (EXIT_FAILURE);
@@ -178,9 +213,8 @@ int main(int argc, char **argv){
   ip_header.ip_ttl =packet_info.TTL;
   ip_header.ip_p = IPPROTO_TCP;
 
-  // get our client and supportive server and information for data exchange
-  int recv_info,send_info;
-
+  // get our client and supportive server information for data exchange
+  int recv_info,send_info, exec;
   struct addrinfo addr_info_init, addr_info_term;
   memset(&addr_info_init,0,sizeof(struct addrinfo));
   addr_info_init.ai_family = AF_INET;
@@ -196,11 +230,21 @@ int main(int argc, char **argv){
   /* before setting our src and dest addresses in our IP header, we should convert the string representations 
      into the IP address format of type IPv4 (dot notation)
   */
-  // int convert_addr;
-  // if ((convert_addr = inet_pton(AF_INET, src_addr_ip, &(iphdr.ip_src))) != 1){
-  //     fprintf (stderr, "ERROR: Failed to convert IP address.\n");
-  //     exit (EXIT_FAILURE);
-  // }
+
+  if ((exec = inet_pton(AF_INET, src_ip, &(ip_header.ip_src))) != 1) {
+    fprintf (stderr, "Failed to convert string to source IP address.\nError message: %s",strerror(exec));
+    exit (EXIT_FAILURE);
+  }
+
+  if ((exec = inet_pton(AF_INET, dst_ip, &(ip_header.ip_dst))) != 1) {
+    fprintf (stderr, "Failed to convert string to destination IP address.\nError message: %s",strerror(exec));
+    exit (EXIT_FAILURE);
+  }
+
+  ip_header.ip_sum = 0;
+  ip_header.ip_sum = checksum((uint16_t *)&ip_header,IP4_HDRLEN);
+
+
 
   // start with a single head SYN packet (to port x) --> this will trigger RST packets to be sent from the server
 
@@ -209,7 +253,7 @@ int main(int argc, char **argv){
   // end with a single tail SYN packet (to port y) --> this will trigger RST packets to be sent from the server
 
   //calculate the difference between arrival time of the two RST packets for compression analysis (loss may occur)
-	
-	
-	return 0;
+  
+  
+  return 0;
 }
