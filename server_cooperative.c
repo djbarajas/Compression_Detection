@@ -1,5 +1,3 @@
-/*CHECK IF WE SHOULD MEMSET THE VALUES BETWEEN THE TWO UDP TRAIN PACKETS*/
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -23,25 +21,16 @@ int tokenize(char * buff, struct json * tcp_info )
     }
 
     tcp_info->server_ip = strsep(&buff, " ");
-    //printf("SERV IP%s\n",tcp_info->server_ip );
     tcp_info->src_prt_udp = strsep(&buff, " ");
-   // printf("SRCPRT UDP%s\n", tcp_info->src_prt_udp);
     tcp_info->dest_prt_udp = strsep(&buff, " ");
-   // printf("DESTPRT UDP %s\n", tcp_info->dest_prt_udp);
     tcp_info->dest_prt_tcp_head = strsep(&buff, " ");
-    //printf("PRTTCP HEAD %s\n", tcp_info->dest_prt_tcp_head);
     tcp_info->dest_prt_tcp_tail = strsep(&buff, " ");
-   // printf("PRTTCP TAIL %s\n", tcp_info->dest_prt_tcp_tail);
     tcp_info->prt_tcp = strsep(&buff, " ");
-    //printf("PRTTCP %s\n", tcp_info->prt_tcp);
     tcp_info->payload_sz = atoi(strsep(&buff, " "));
-   // printf("SZ %d\n", tcp_info->payload_sz);
     tcp_info->in_time = atoi(strsep(&buff, " "));
-    //printf("IN %d\n", tcp_info->in_time);
     tcp_info->num_of_packets = atoi(strsep(&buff, " "));
-    //printf("NOP %d\n", tcp_info->num_of_packets);
     tcp_info->TTL = atoi(strsep(&buff, " "));
-   // printf("TTL %d\n", tcp_info->TTL);
+	
     if (tcp_info->server_ip == NULL || tcp_info->src_prt_udp == NULL ||
         tcp_info->dest_prt_udp == NULL || tcp_info->dest_prt_tcp_head == NULL ||
         tcp_info->dest_prt_tcp_tail == NULL || tcp_info->prt_tcp == NULL ||
@@ -183,7 +172,7 @@ void recv_udp_train(struct json* tcp_info )
 }
 
   
-// Driver function 
+
 int main() 
 { 
     int sockfd, connfd, len; 
@@ -198,9 +187,6 @@ int main()
     close(sockfd);
 
     sleep(20);
-
-   //recv_udp_train(&tcp_info);
-
 
     char *buffer =  calloc(tcp_info.payload_sz, sizeof(char));  
     struct sockaddr_in  cliaddr;
@@ -316,6 +302,7 @@ int main()
 
     char compression[50];
 
+    // now we will do the check: If (∆tH − ∆tL) is bigger than our threshold (100 ms) then we have compression
     if ((high_entropy - low_entropy) > THRESH)
     {
         strcpy(compression, "COMPRESSION DETECTED");
@@ -326,8 +313,6 @@ int main()
 
     }
     
-
-    // now we will do the check: If (∆tH − ∆tL) is bigger than our threshold (100 ms) then we have compression
 
     bzero(buff, sizeof(buff));
 
