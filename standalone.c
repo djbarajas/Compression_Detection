@@ -1,7 +1,6 @@
-/*
-    CHECK ADDR_INFO_TERM
-*/
-
+  /*
+    CECK [ADDR_INFO_TERM]
+  */
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -15,8 +14,9 @@
 #include <errno.h>
 #include "read_json.h"
 
-/* this class is responsible for compression detection with an uncooperative server 
-	uncooperative denotes inability to onbtain control of the server (but its still responsive)
+/* 
+	*this class is responsible for compression detection with an uncooperative server* 
+	*uncooperative denotes inability to onbtain control of the server (but its still responsive)*
 */
 
 // we have two different checksums: One for our UDP packets and the other for the TCP connection.
@@ -135,7 +135,16 @@ int main(int argc, char **argv){
       exit (EXIT_FAILURE);
   }
 
-  int recv_info,send_info;
+  // initialize socket connection with the start of the client
+  int sockfd = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
+
+  if (sockfd == -1) { 
+    fprintf (stderr, "ERROR: socket creation failed...\n");
+    exit (EXIT_FAILURE);
+  } 
+  else
+      printf("Socket successfully created..\n");
+
 
   //read JSON file to obtain data (TTL will be our main variable)
   struct json packet_info;
@@ -144,8 +153,8 @@ int main(int argc, char **argv){
 
   // prepare source and destination addresses
   char src_ip, dest_ip;
-  src_ip = allocate_strmem (INET_ADDRSTRLEN);
-  dst_ip = allocate_strmem (INET_ADDRSTRLEN);
+  src_ip = allocate_strmem(INET_ADDRSTRLEN);
+  dst_ip = allocate_strmem(INET_ADDRSTRLEN);
   strcpy (src_ip, "1.2.3.4"); 
   strcpy (dest_ip, packet_info.server_ip);
 
@@ -155,8 +164,8 @@ int main(int argc, char **argv){
   ip_header.ip_hl =IP4_HDRLEN/sizeof(uint32_t);
   ip_header.ip_v =4;
   ip_header.ip_tos = 0;
-  ip_header.ip_len = htons (IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
-  ip_header.ip_id= htons (0);
+  ip_header.ip_len = htons(IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
+  ip_header.ip_id= htons(0);
 
   ip_flags[0]=0; // static unused bit
   ip_flags[1]=0; // DF flag
@@ -164,21 +173,23 @@ int main(int argc, char **argv){
   ip_flags[3]=0; // fragment offset
 
   // position flag results into corresponding sectors in ip_off by shifting the bits to correct order 
-  ip_header.ip_off = htons ((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
+  ip_header.ip_off = htons((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
 
   ip_header.ip_ttl =packet_info.TTL;
   ip_header.ip_p = IPPROTO_TCP;
 
-  // get our supportive server information
+  // get our client and supportive server and information for data exchange
+  int recv_info,send_info;
+
   struct addrinfo addr_info_init, addr_info_term;
-  memset (&addr_info_init,0,sizeof(struct addrinfo));
+  memset(&addr_info_init,0,sizeof(struct addrinfo));
   addr_info_init.ai_family = AF_INET;
   addr_info_init.ai_socktype = SOCK_STREAM;
   addr_info_init.ai_flags = hints.ai_flags | AI_CANONNAME;
 
   if ((recv_info = getaddrinfo(dest_ip,NULL,&addr_info_init,&addr_info_term))!= 0) {
-      fprintf (stderr, "ERROR: Failed to recieve address information.\n");
-      exit (EXIT_FAILURE);
+      fprintf(stderr, "ERROR: Failed to recieve address information.\n");
+      exit(EXIT_FAILURE);
   }
 
 
@@ -199,5 +210,6 @@ int main(int argc, char **argv){
 
   //calculate the difference between arrival time of the two RST packets for compression analysis (loss may occur)
 	
-  return 0;
+	
+	return 0;
 }
