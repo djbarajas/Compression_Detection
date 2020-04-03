@@ -9,7 +9,6 @@
 #include <arpa/inet.h>
 #include "read_json.h"
 #define SA struct sockaddr 
-#define IP_DONTFRAG 1
 #define PORT     8080 
 #define MAXLINE 1024 
 
@@ -137,7 +136,7 @@ void send_packet_train(struct json* packet_info)
 int main() 
 { 
     char binary[16];
-    //print_bin_n(binary, 15);
+  
     /**
         Pre-probing phase [send in packet information through TCP connection] 
     */
@@ -278,6 +277,11 @@ int main()
     } 
     else
         printf("Socket successfully created..\n"); 
+    
+    /**
+         Post-probing phase [send out compression information through TCP connection] 
+    */
+
     bzero(&servaddr, sizeof(servaddr)); 
   
     // assign IP, PORT 
@@ -298,9 +302,6 @@ int main()
     recv(sockfd, buff, 50, 0);
     printf("%s\n",buff); 
 }   
-
-
-
 
 
 } 
