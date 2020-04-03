@@ -272,7 +272,7 @@ int main(int argc, char **argv){
   tcp_header.th_flags= 0;
   int i;
   for (i=0; i<TCP_FLAG_LEN; i++) {
-    tcp_header.th_flags+=(tcp_flags[i]<<i); //my friend i cant do maths
+    tcp_header.th_flags+=(tcp_flags[i]<<i); //place flags in respective bit order.
   }
 
   tcp_header.th_win= htons(32767); //set window size
