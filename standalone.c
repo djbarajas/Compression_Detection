@@ -1,5 +1,9 @@
 /*
-   CHECK [ADDR_INFO_TERM]
+  *CHECK [ADDR_INFO_TERM]
+  * How do we know if we need htons or not? dont all bits require an order check?
+  * check source port
+  * check stuff to free
+  * why do we need checksum for both IP and TCP?
 */
 
 #include <stdio.h>
@@ -14,6 +18,8 @@
 #include <arpa/inet.h> 
 #include <errno.h>
 #include "read_json.h"
+
+#define TCP_FLAG_LEN 8
 
 /* 
   *this class is responsible for compression detection with an uncooperative server* 
@@ -88,7 +94,7 @@ uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, 
     chksumlen++;
   }
 
-  return checksum((uint16_t *)buf, chksumlen);
+  return checksum((uint16_t *)buf,chksumlen);
 }
 
 
@@ -100,14 +106,14 @@ uint16_t checksum(uint16_t *addr, int len){
   uint16_t answer = 0;
 
   // Sum up 2-byte values until none or only one byte left.
-  while (count > 1) {
+  while (count > 1){
     sum += *(addr++);
     count -= 2;
   }
 
   // Add left-over byte, if any.
   if (count > 0) {
-    sum += *(uint8_t *) addr;
+    sum += *(uint8_t *)addr;
   }
 
   // Fold 32-bit sum into 16 bits; we lose information by doing this,
@@ -124,7 +130,7 @@ uint16_t checksum(uint16_t *addr, int len){
 }
 
 // Allocate memory for an array of chars.
-char * allocate_strmem(int len){
+char* allocate_strmem(int len){
   void *tmp;
 
   if (len <= 0) {
@@ -142,28 +148,30 @@ char * allocate_strmem(int len){
   }
 }
 
-// responsible for readjusting checksum value for checking the packet validity
-unsigned short csum(unsigned short *buf, int nwords){
+// Allocate memory for an array of ints.
+int* allocate_intmem(int len){
+  void *tmp;
 
-   unsigned long sum;
+  if (len <= 0) {
+    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_intmem().\n", len);
+    exit (EXIT_FAILURE);
+  }
 
-   for(sum=0; nwords>0; nwords--)
-
-          sum += *buf++;
-
-   sum = (sum >> 16) + (sum &0xffff);
-
-   sum += (sum >> 16);
-
-   return (unsigned short)(~sum);
-
+  tmp = (int *) malloc (len * sizeof (int));
+  if (tmp != NULL) {
+    memset (tmp, 0, len * sizeof (int));
+    return (tmp);
+  } else {
+    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_intmem().\n");
+    exit (EXIT_FAILURE);
+  }
 }
 
 
 int main(int argc, char **argv){
 
   /* 
-      unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
+    * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
       packet data specifications (layers and payload)
   */
 
@@ -174,7 +182,7 @@ int main(int argc, char **argv){
 
   // initialize socket connection with the start of the client
   int sockfd = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
-  if (sockfd == -1) { 
+  if (sockfd == -1){ 
     fprintf (stderr, "ERROR: socket creation failed...\n");
     exit (EXIT_FAILURE);
   } 
@@ -222,7 +230,7 @@ int main(int argc, char **argv){
   addr_info_init.ai_socktype = SOCK_STREAM;
   addr_info_init.ai_flags = hints.ai_flags | AI_CANONNAME;
 
-  if ((recv_info = getaddrinfo(dest_ip,NULL,&addr_info_init,&addr_info_term))!= 0) {
+  if ((recv_info= getaddrinfo(dest_ip,NULL,&addr_info_init,&addr_info_term))!= 0){
       fprintf(stderr, "ERROR: Failed to recieve address information.\n");
       exit(EXIT_FAILURE);
   }
@@ -232,13 +240,13 @@ int main(int argc, char **argv){
      into the IP address format of type IPv4 (dot notation)
   */
 
-  if ((exec = inet_pton(AF_INET, src_ip, &(ip_header.ip_src))) != 1) {
-    fprintf (stderr, "Failed to convert string to source IP address.\nError message: %s",strerror(exec));
+  if ((exec = inet_pton(AF_INET, src_ip, &(ip_header.ip_src)))!= 1){
+    fprintf(stderr, "Failed to convert string to source IP address.\nError message: %s",strerror(exec));
     exit (EXIT_FAILURE);
   }
 
-  if ((exec = inet_pton(AF_INET, dst_ip, &(ip_header.ip_dst))) != 1) {
-    fprintf (stderr, "Failed to convert string to destination IP address.\nError message: %s",strerror(exec));
+  if ((exec = inet_pton(AF_INET, dst_ip, &(ip_header.ip_dst))) != 1){
+    fprintf(stderr, "Failed to convert string to destination IP address.\nError message: %s",strerror(exec));
     exit (EXIT_FAILURE);
   }
 
@@ -246,6 +254,45 @@ int main(int argc, char **argv){
   ip_header.ip_sum = checksum((uint16_t *)&ip_header,IP4_HDRLEN);
 
 
+  // TCP|SYN manual packet setup
+
+  struct tcphdr tcp_header;
+
+  tcp_header.th_sport= htons(60); // source port
+  tcp_header.th_dport= htons(packet_info.dest_prt_tcp_head); // destination port
+  tcp_header.th_seq= htonl(1); //sequence number 
+  tcp_header.th_ack= htonl(0); //ACK response number
+  tcp_header.th_off=TCP_HDRLEN/4; //divide by 4 because TCP header length is made from offsets of multiples of 4
+
+  int* tcp_flags;
+
+  tcp_flags=allocate_intmem(TCP_FLAG_LEN);
+  tcp_flags[1]=1; //this means the only flag we have on is to define its identity as a SYN packet
+
+  tcp_header.th_flags= 0;
+  int i;
+  for (i=0; i<TCP_FLAG_LEN; i++) {
+    tcp_header.th_flags+=(tcp_flags[i]<<i); //my friend i cant do maths
+  }
+
+  tcp_header.th_win= htons(32767); //set window size
+  tcp_header.th_urp= htons(0); //urgent pointer
+  tcp_header.th_sum= 0; //TCP checksum
+
+
+
+  // inform the kernel that we are controling the socket behavior due to header fabrication
+  const int is_set=1;
+  if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL,is_set,sizeof(is_set))!=1){
+      fprintf(stderr, "ERROR: Failed to accept socket control.\n");
+      exit(EXIT_FAILURE);
+  }
+
+
+  // if (sendto (sd, packet, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+  //   perror ("sendto() failed ");
+  //   exit (EXIT_FAILURE);
+  // }
 
   // start with a single head SYN packet (to port x) --> this will trigger RST packets to be sent from the server
 
