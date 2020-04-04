@@ -1,8 +1,3 @@
 # Compression Detection
 
-read this --> 
-https://www.tenouk.com/download/pdf/Module43.pdf 
-
-https://stackoverflow.com/questions/19816071/raw-ethernet-sockets-filling-sockaddr-ll
-
-3% --> https://www.gnu.org/prep/standards/html_node/Writing-C.html
+This project is an implementation of end-to-end compression detection of network traffic flows by intermediaried inspired by the research of Vahab Pournaghshband, Alexander Afanasyev, and Peter Reiher. The range of detection control through the reading expressed its sensitivity to the layer in which we implementing our observation and expressed the possibility of encountering servers with different levels of compliance.
