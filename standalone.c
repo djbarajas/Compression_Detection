@@ -264,7 +264,7 @@ int main(int argc, char **argv){
 
 
   // continue fillout of ethernet frame information
-  eth_data.sll_family = AF_PACKET; // this enables the to control protocol selection
+  eth_data.sll_family = AF_PACKET; // this enables the protocol control
   eth_data.sll_protocol = htons(ETH_P_IP); // select protocol
   memcpy(eth_data.sll_addr,mac_addr_dest,6); // ethernet destination address
   eth_data.sll_halen=6; // ethernet address length
