@@ -34,7 +34,7 @@
 
 // Build IPv4 UDP pseudo-header and call checksum function.
 uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen){
-  char buf[IP_MAXPACKET];
+  char buf[];
   char *ptr;
   int chksumlen = 0;
   int i;
@@ -171,6 +171,25 @@ int* allocate_intmem(int len){
   }
 }
 
+// Allocate memory for an array of unsigned chars.
+uint8_t *allocate_ustrmem(int len){
+  void *tmp;
+
+  if (len <= 0) {
+    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_ustrmem().\n", len);
+    exit (EXIT_FAILURE);
+  }
+
+  tmp = (uint8_t *) malloc (len * sizeof (uint8_t));
+  if (tmp != NULL) {
+    memset (tmp, 0, len * sizeof (uint8_t));
+    return (tmp);
+  } else {
+    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_ustrmem().\n");
+    exit (EXIT_FAILURE);
+  }
+}
+
 
 int main(int argc, char **argv){
 
@@ -187,7 +206,7 @@ int main(int argc, char **argv){
   //read JSON file to obtain data (TTL will be our main variable)
   struct json packet_info;
   char buff[1000] = {0};
-  read_json(&packet_info, argv[1], buff);
+  read_json(&, argv[1], buff);
 
 
   // initialize socket connection with the start of the client
@@ -227,8 +246,8 @@ int main(int argc, char **argv){
   }
 
   // Set mac destination address
-  uint8_t* mac_addr_dest;
-  mac_addr_dest= allocate_ustrmem(6);
+  mac_addr_dest;
+  mac_addr_dest=allocate_ustrmem(6);
   memset(&mac_addr_dest,0xff,6);
 
 
@@ -264,19 +283,22 @@ int main(int argc, char **argv){
 
 
   // continue fillout of ethernet frame information
-  eth_data.sll_family = AF_PACKET; // this enables the protocol control
+  eth_data.sll_family = AF_PACKET; // this enables the to control protocol selection
   eth_data.sll_protocol = htons(ETH_P_IP); // select protocol
   memcpy(eth_data.sll_addr,mac_addr_dest,6); // ethernet destination address
   eth_data.sll_halen=6; // ethernet address length
 
 
   // prepare ip header for TCP manually
+  int tcp_payload_length =packet_info.payload_sz;
+  uint8_t* tcp_payload;
+  tcp_payload= allocate_ustrmem(tcp_payload_length);
   int* ip_flags;
   struct ip ip_header;
   ip_header.ip_hl =IP4_HDRLEN/sizeof(uint32_t);
   ip_header.ip_v =4;
   ip_header.ip_tos = 0;
-  ip_header.ip_len = htons(IP4_HDRLEN + TCP_HDRLEN + datalen); // htons makes sure we are using little-endian byte order
+  ip_header.ip_len = htons(IP4_HDRLEN + TCP_HDRLEN + tcp_payload_length); // htons makes sure we are using little-endian byte order
   ip_header.ip_id= htons(0);
 
   ip_flags[0]=0; // static unused bit
@@ -335,20 +357,29 @@ int main(int argc, char **argv){
   tcp_header.th_sum= 0; //TCP checksum
 
 
+  uint8_t* tcp_frame;
+  tcp_frame= allocate_ustrmem(IP_MAXPACKET);
+  int tcp_frame_length;
+  tcp_frame_length = IP4_HDRLEN + TCP_HDRLEN + tcp_payload_length;
 
-  // inform the kernel that we are controling the socket behavior due to header fabrication
-  // probably dont need because we set SOCK_RAW
-  // const int is_set=1;
-  // if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL,is_set,sizeof(is_set))!=1){
-  //     fprintf(stderr, "ERROR: Failed to accept socket control.\n");
-  //     exit(EXIT_FAILURE);
-  // }
+  // using pointer arithmetic declare space for each layer of the ethernet frame
+  memcpy(tcp_frame,&tcp_header, IP4_HDRLEN); //set IP header size
+  memcpy(tcp_frame+IP4_HDRLEN, &tcp_header, TCP_HDRLEN); //set TCP header size
+  memcpy(tcp_frame+IP4_HDRLEN+TCP_HDRLEN,tcp_payload,tcp_payload_length); // set payload size
 
+  // connect to socket to send SYN packet  
+  if ((sockfd = socket(PF_PACKET,SOCK_STREAM,htons(ETH_P_ALL)))!= 1){
+    fprintf(stderr, "ERROR: unable to establish socket connection.\n");
+    exit(EXIT_FAILURE);
+  }
 
-  // if (sendto (sockfd, packet, packet_size, 0, (struct sockaddr *) &sin, sizeof(struct sockaddr))!= 1)  {
-  //   perror ("sendto() failed ");
-  //   exit (EXIT_FAILURE);
-  // }
+  // Send ethernet frame to socket.
+  if ((bytes = sendto(sockfd, tcp_frame,tcp_frame_length, 0,(struct sockaddr *)&send_to_attr, sizeof(send_to_attr))) <= 0) {
+    fprintf(stderr, "ERROR: unable to send TCP ethernet frame.\n");
+    exit(EXIT_FAILURE);
+  }
+
+  close (sockfd);
 
   // start with a single head SYN packet (to port x) --> this will trigger RST packets to be sent from the server
 
