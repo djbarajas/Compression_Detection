@@ -4,6 +4,7 @@
   * check source port
   * check stuff to free
   * why do we need checksum for both IP and TCP?
+  *free addr info term?
 */
 
 #include <stdio.h>
@@ -13,10 +14,13 @@
 #include <netdb.h> 
 #include <sys/types.h> 
 #include <sys/socket.h>
-#include <netinet/in.h> 
+#include <netinet/in.h>
+#include <sys/ioctl.h> 
 #include <netinet/ip.h>
 #include <arpa/inet.h> 
 #include <errno.h>
+#include <linux/if_packet.h>
+#include <net/if.h>
 #include "read_json.h"
 
 #define TCP_FLAG_LEN 8
@@ -106,13 +110,13 @@ uint16_t checksum(uint16_t *addr, int len){
   uint16_t answer = 0;
 
   // Sum up 2-byte values until none or only one byte left.
-  while (count > 1){
+  while(count > 1){
     sum += *(addr++);
     count -= 2;
   }
 
   // Add left-over byte, if any.
-  if (count > 0) {
+  if(count > 0) {
     sum += *(uint8_t *)addr;
   }
 
@@ -134,17 +138,17 @@ char* allocate_strmem(int len){
   void *tmp;
 
   if (len <= 0) {
-    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_strmem().\n", len);
-    exit (EXIT_FAILURE);
+    fprintf(stderr, "ERROR: Cannot allocate memory because len = %i in allocate_strmem().\n", len);
+    exit(EXIT_FAILURE);
   }
 
-  tmp = (char *) malloc (len * sizeof (char));
-  if (tmp != NULL) {
-    memset (tmp, 0, len * sizeof (char));
-    return (tmp);
+  tmp = (char *)malloc(len * sizeof (char));
+  if (tmp != NULL){
+    memset(tmp, 0, len * sizeof (char));
+    return(tmp);
   } else {
     fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_strmem().\n");
-    exit (EXIT_FAILURE);
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -153,17 +157,17 @@ int* allocate_intmem(int len){
   void *tmp;
 
   if (len <= 0) {
-    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_intmem().\n", len);
-    exit (EXIT_FAILURE);
+    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_intmem().\n",len);
+    exit(EXIT_FAILURE);
   }
 
-  tmp = (int *) malloc (len * sizeof (int));
-  if (tmp != NULL) {
-    memset (tmp, 0, len * sizeof (int));
+  tmp = (int *)malloc(len * sizeof(int));
+  if(tmp != NULL){
+    memset (tmp, 0, len * sizeof(int));
     return (tmp);
-  } else {
-    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_intmem().\n");
-    exit (EXIT_FAILURE);
+  } else{
+    fprintf(stderr,"ERROR: Cannot allocate memory for array allocate_intmem().\n");
+    exit(EXIT_FAILURE);
   }
 }
 
@@ -180,27 +184,91 @@ int main(int argc, char **argv){
       exit (EXIT_FAILURE);
   }
 
+  //read JSON file to obtain data (TTL will be our main variable)
+  struct json packet_info;
+  char buff[1000] = {0};
+  read_json(&packet_info, argv[1], buff);
+
+
   // initialize socket connection with the start of the client
   int sockfd = socket(PF_INET, SOCK_RAW, IPPROTO_RAW);
   if (sockfd == -1){ 
-    fprintf (stderr, "ERROR: socket creation failed...\n");
+    fprintf (stderr, "ERROR: socket creation failed.\n");
     exit (EXIT_FAILURE);
   } 
   else
       printf("Socket successfully created..\n");
 
 
-  //read JSON file to obtain data (TTL will be our main variable)
-  struct json packet_info;
-  char buff[1000] = {0};
-  read_json(&packet_info, argv[1], buff);
+  // get our ethernet interface and search for its mac addresses
+  struct ifreq eth_data;
+  memset(&eth_data,0,sizeof(struct ifreq));
+  strcpy(eth_data.ifr_name,"eth0");
+  if(ioctl(sockfd, SIOCGIFHWADDR, &eth_data) != 1){
+    fprintf (stderr, "ERROR: socket creation failed.\n");
+    exit (EXIT_FAILURE);
+  }
+
+  close(sockfd);
+
+  // take in the first 6 mac addresses that show up
+  uint8_t* mac_addr_src;
+  mac_addr_src= allocate_ustrmem(6);
+  memcpy(mac_addr_src,ifr.ifr_hwaddr.sa_data,6);
+
+  // find mac address that matches our interface frame
+  struct sockaddr_ll send_to_attr;
+  memset(&send_to_attr, 0,sizeof(struct sockaddr_ll));
+  send_to_attr.sll_ifindex = if_nametoindex(eth_data.ifr_name);
+
+  if (send_to_attr.sll_ifindex == 0){
+    fprintf (stderr, "ERROR: unable to find index from interface name.\n");
+    exit (EXIT_FAILURE);
+  }
+
+  // Set mac destination address
+  uint8_t* mac_addr_dest;
+  mac_addr_dest= allocate_ustrmem(6);
+  memset(&mac_addr_dest,0xff,6);
+
 
   // prepare source and destination addresses
-  char src_ip, dest_ip;
+  char* src_ip, dest_ip;
   src_ip = allocate_strmem(INET_ADDRSTRLEN);
-  dst_ip = allocate_strmem(INET_ADDRSTRLEN);
-  strcpy (src_ip, "1.2.3.4"); 
-  strcpy (dest_ip, packet_info.server_ip);
+  dest_ip = allocate_strmem(INET_ADDRSTRLEN);
+  strcpy(src_ip, "1.2.3.4"); 
+  strcpy(dest_ip, packet_info.server_ip);
+
+
+  // get our client and supportive server information for data exchange
+  int recv_info, exec;
+  struct addrinfo addr_info_init, addr_info_term;
+  memset(&addr_info_init,0,sizeof(struct addrinfo));
+  addr_info_init.ai_family = AF_INET;
+  addr_info_init.ai_socktype = SOCK_STREAM;
+  addr_info_init.ai_flags = hints.ai_flags | AI_CANONNAME;
+
+  if ((recv_info= getaddrinfo(dest_ip,NULL,&addr_info_init,&addr_info_term))!= 0){
+      fprintf(stderr, "ERROR: Failed to recieve address information.\n");
+      exit(EXIT_FAILURE);
+  }
+
+  // transorm destination address from binary to string
+  struct sockaddr_in* ip_v4;
+  ip_v4=(struct sockaddr_in *)addr_info_term->ai_addr;
+
+  if(inet_ntop(AF_INET,(void *)&(ip_v4->sin_addr,dest_ip),INET_ADDRSTRLEN) == NULL){
+      fprintf(stderr, "ERROR: Failed to convert destination address information to string.\n");
+      exit(EXIT_FAILURE);
+  }
+
+
+  // continue fillout of ethernet frame information
+  eth_data.sll_family = AF_PACKET; // this enables the to control protocol selection
+  eth_data.sll_protocol = htons(ETH_P_IP); // select protocol
+  memcpy(eth_data.sll_addr,mac_addr_dest,6); // ethernet destination address
+  eth_data.sll_halen=6; // ethernet address length
+
 
   // prepare ip header for TCP manually
   int* ip_flags;
@@ -217,23 +285,10 @@ int main(int argc, char **argv){
   ip_flags[3]=0; // fragment offset
 
   // position flag results into corresponding sectors in ip_off by shifting the bits to correct order 
-  ip_header.ip_off = htons((ip_flags[0] << 15) + (ip_flags[1] << 14) + (ip_flags[2] << 13) +  ip_flags[3]); 
+  ip_header.ip_off = htons((ip_flags[0]<<15)+(ip_flags[1]<<14)+(ip_flags[2] << 13)+ip_flags[3]); 
 
   ip_header.ip_ttl =packet_info.TTL;
   ip_header.ip_p = IPPROTO_TCP;
-
-  // get our client and supportive server information for data exchange
-  int recv_info,send_info, exec;
-  struct addrinfo addr_info_init, addr_info_term;
-  memset(&addr_info_init,0,sizeof(struct addrinfo));
-  addr_info_init.ai_family = AF_INET;
-  addr_info_init.ai_socktype = SOCK_STREAM;
-  addr_info_init.ai_flags = hints.ai_flags | AI_CANONNAME;
-
-  if ((recv_info= getaddrinfo(dest_ip,NULL,&addr_info_init,&addr_info_term))!= 0){
-      fprintf(stderr, "ERROR: Failed to recieve address information.\n");
-      exit(EXIT_FAILURE);
-  }
 
 
   /* before setting our src and dest addresses in our IP header, we should convert the string representations 
@@ -282,14 +337,15 @@ int main(int argc, char **argv){
 
 
   // inform the kernel that we are controling the socket behavior due to header fabrication
-  const int is_set=1;
-  if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL,is_set,sizeof(is_set))!=1){
-      fprintf(stderr, "ERROR: Failed to accept socket control.\n");
-      exit(EXIT_FAILURE);
-  }
+  // probably dont need because we set SOCK_RAW
+  // const int is_set=1;
+  // if(setsockopt(sockfd, IPPROTO_IP, IP_HDRINCL,is_set,sizeof(is_set))!=1){
+  //     fprintf(stderr, "ERROR: Failed to accept socket control.\n");
+  //     exit(EXIT_FAILURE);
+  // }
 
 
-  // if (sendto (sd, packet, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+  // if (sendto (sockfd, packet, packet_size, 0, (struct sockaddr *) &sin, sizeof(struct sockaddr))!= 1)  {
   //   perror ("sendto() failed ");
   //   exit (EXIT_FAILURE);
   // }
