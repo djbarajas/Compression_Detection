@@ -15,6 +15,9 @@
 #include <sys/types.h> 
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <linux/if_ether.h>
+#include <netinet/tcp.h>      // struct tcphdr
+#include <netinet/udp.h>      // struct tcphdr
 #include <sys/ioctl.h> 
 #include <netinet/ip.h>
 #include <arpa/inet.h> 
@@ -24,6 +27,11 @@
 #include "read_json.h"
 
 #define TCP_FLAG_LEN 8
+// Define some constants.
+// Define some constants.
+#define IP4_HDRLEN 20         // IPv4 header length
+#define TCP_HDRLEN 20         // TCP header length, excludes options data
+#define ICMP_HDRLEN 8         // ICMP header length for echo request, excludes data
 
 /* 
   *this class is responsible for compression detection with an uncooperative server* 
@@ -32,9 +40,40 @@
 
 // we have two different checksums: One for our UDP packets and the other for the TCP connection.
 
+// Computing the internet checksum (RFC 1071).
+// Note that the internet checksum does not preclude collisions.
+uint16_t checksum(uint16_t *addr, int len){
+  int count = len;
+  register uint32_t sum = 0;
+  uint16_t answer = 0;
+
+  // Sum up 2-byte values until none or only one byte left.
+  while(count > 1){
+    sum += *(addr++);
+    count -= 2;
+  }
+
+  // Add left-over byte, if any.
+  if(count > 0) {
+    sum += *(uint8_t *)addr;
+  }
+
+  // Fold 32-bit sum into 16 bits; we lose information by doing this,
+  // increasing the chances of a collision.
+  // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
+  while (sum >> 16) {
+    sum = (sum & 0xffff) + (sum >> 16);
+  }
+
+  // Checksum is one's compliment of sum.
+  answer = ~sum;
+
+  return (answer);
+}
+
 // Build IPv4 UDP pseudo-header and call checksum function.
 uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen){
-  char buf[];
+  char buf[IP_MAXPACKET];
   char *ptr;
   int chksumlen = 0;
   int i;
@@ -101,38 +140,6 @@ uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, 
   return checksum((uint16_t *)buf,chksumlen);
 }
 
-
-// Computing the internet checksum (RFC 1071).
-// Note that the internet checksum does not preclude collisions.
-uint16_t checksum(uint16_t *addr, int len){
-  int count = len;
-  register uint32_t sum = 0;
-  uint16_t answer = 0;
-
-  // Sum up 2-byte values until none or only one byte left.
-  while(count > 1){
-    sum += *(addr++);
-    count -= 2;
-  }
-
-  // Add left-over byte, if any.
-  if(count > 0) {
-    sum += *(uint8_t *)addr;
-  }
-
-  // Fold 32-bit sum into 16 bits; we lose information by doing this,
-  // increasing the chances of a collision.
-  // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
-  while (sum >> 16) {
-    sum = (sum & 0xffff) + (sum >> 16);
-  }
-
-  // Checksum is one's compliment of sum.
-  answer = ~sum;
-
-  return (answer);
-}
-
 // Allocate memory for an array of chars.
 char* allocate_strmem(int len){
   void *tmp;
@@ -197,6 +204,7 @@ int main(int argc, char **argv){
     * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
       packet data specifications (layers and payload)
   */
+	int bytes;
 
   if (argc != 2){
       fprintf (stderr, "ERROR: Too few or many arguments.\n");
@@ -206,7 +214,7 @@ int main(int argc, char **argv){
   //read JSON file to obtain data (TTL will be our main variable)
   struct json packet_info;
   char buff[1000] = {0};
-  read_json(&, argv[1], buff);
+  read_json(&packet_info, argv[1], buff);
 
 
   // initialize socket connection with the start of the client
@@ -232,21 +240,21 @@ int main(int argc, char **argv){
 
   // take in the first 6 mac addresses that show up
   uint8_t* mac_addr_src;
+  struct sockaddr_ll device;
   mac_addr_src= allocate_ustrmem(6);
-  memcpy(mac_addr_src,ifr.ifr_hwaddr.sa_data,6);
+  memcpy(mac_addr_src,device.ifr_hwaddr.sa_data,6);
 
   // find mac address that matches our interface frame
-  struct sockaddr_ll send_to_attr;
-  memset(&send_to_attr, 0,sizeof(struct sockaddr_ll));
-  send_to_attr.sll_ifindex = if_nametoindex(eth_data.ifr_name);
+  memset(&device, 0,sizeof(struct sockaddr_ll));
+  device.sll_ifindex = if_nametoindex(eth_data.ifr_name);
 
-  if (send_to_attr.sll_ifindex == 0){
+  if (device.sll_ifindex == 0){
     fprintf (stderr, "ERROR: unable to find index from interface name.\n");
     exit (EXIT_FAILURE);
   }
 
   // Set mac destination address
-  mac_addr_dest;
+  uint8_t* mac_addr_dest;
   mac_addr_dest=allocate_ustrmem(6);
   memset(&mac_addr_dest,0xff,6);
 
@@ -255,7 +263,7 @@ int main(int argc, char **argv){
   char* src_ip, dest_ip;
   src_ip = allocate_strmem(INET_ADDRSTRLEN);
   dest_ip = allocate_strmem(INET_ADDRSTRLEN);
-  strcpy(src_ip, "1.2.3.4"); 
+  strcpy(src_ip, "127.0.0.1"); 
   strcpy(dest_ip, packet_info.server_ip);
 
 
@@ -274,9 +282,9 @@ int main(int argc, char **argv){
 
   // transorm destination address from binary to string
   struct sockaddr_in* ip_v4;
-  ip_v4=(struct sockaddr_in *)addr_info_term->ai_addr;
+  ip_v4=(struct sockaddr_in *)addr_info_term.ai_addr;
 
-  if(inet_ntop(AF_INET,(void *)&(ip_v4->sin_addr,dest_ip),INET_ADDRSTRLEN) == NULL){
+  if(inet_ntop(AF_INET,(void *)&(ip_v4->sin_addr),dest_ip,INET_ADDRSTRLEN) == NULL){
       fprintf(stderr, "ERROR: Failed to convert destination address information to string.\n");
       exit(EXIT_FAILURE);
   }
@@ -322,7 +330,7 @@ int main(int argc, char **argv){
     exit (EXIT_FAILURE);
   }
 
-  if ((exec = inet_pton(AF_INET, dst_ip, &(ip_header.ip_dst))) != 1){
+  if ((exec = inet_pton(AF_INET, dest_ip, &(ip_header.ip_dst))) != 1){
     fprintf(stderr, "Failed to convert string to destination IP address.\nError message: %s",strerror(exec));
     exit (EXIT_FAILURE);
   }
@@ -336,7 +344,7 @@ int main(int argc, char **argv){
   struct tcphdr tcp_header;
 
   tcp_header.th_sport= htons(60); // source port
-  tcp_header.th_dport= htons(packet_info.dest_prt_tcp_head); // destination port
+  tcp_header.th_dport= htons(atoi(packet_info.dest_prt_tcp_head)); // destination port
   tcp_header.th_seq= htonl(1); //sequence number 
   tcp_header.th_ack= htonl(0); //ACK response number
   tcp_header.th_off=TCP_HDRLEN/4; //divide by 4 because TCP header length is made from offsets of multiples of 4
@@ -374,7 +382,7 @@ int main(int argc, char **argv){
   }
 
   // Send ethernet frame to socket.
-  if ((bytes = sendto(sockfd, tcp_frame,tcp_frame_length, 0,(struct sockaddr *)&send_to_attr, sizeof(send_to_attr))) <= 0) {
+  if ((bytes = sendto(sockfd, tcp_frame,tcp_frame_length, 0,(struct sockaddr *)&device, sizeof(device))) <= 0) {
     fprintf(stderr, "ERROR: unable to send TCP ethernet frame.\n");
     exit(EXIT_FAILURE);
   }
