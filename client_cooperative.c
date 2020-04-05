@@ -33,14 +33,9 @@ void read_high_entropy_data(uint8_t * data, int len){
     file_ptr =  fopen("/dev/random", "r");
     for (int i = 0; i < len; i++){
         temp = getc(file_ptr);
-        int t = atoi(&temp);
-        if (t > 1){
-            t = 1;
-        }
-        data[i] = t;
+        data[i] = temp;
     }
-
-
+    fclose(file_ptr);
 }
 
 void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
@@ -243,7 +238,7 @@ int main()
     bzero(data, packet_info.payload_sz);
 
     read_high_entropy_data(&data[16], packet_info.payload_sz-16);
-
+    printf("Finished reading high entropy data");
     for (int i=0;i<packet_info.num_of_packets;i++){
         packet_id_setup(data, packet_id++);
         if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){

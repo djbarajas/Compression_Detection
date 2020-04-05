@@ -3,6 +3,7 @@
 
  CFLAGS = -g
 
+standalone : standalone.c read_json.o
 
 client_cooperative : client_cooperative.c read_json.o
 	gcc ${CFLAGS} -o $@ $^
