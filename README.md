@@ -19,5 +19,12 @@ Finally, we compute the difference in time between the arrival of the first bit 
 Unlike cooperative servers, responsive hosts are free from any restrictions or orders enforced by the [client](standalone.c), making it difficult to manipulate for data retrieval. From what we know, any host machine in the network holds a wide range of ports that need to be open for connection in order to receive data. However, when a client attempts to communicate with an unavailable port, RST packets are sent back to inform the client of the failed attempt. 
 
 An initial TCP connection is established to send a SYN packet to an arbitrary server. These packets are assigned to a closed port **x** in order to proceed with the three-way handshake, yet are dropped with an alert being sent back to the client. the client then sends the packet trains discussed earlier to a valid port and ends the connection with a final TCP connection to port **y** to retrieve our second RST packet. the difference of duration between the arrival of both alerting packets will be measured and compared to the threshold previously mentioned to detect compression. 
+
+## Usage
+
+```bash
+
+```
+
 ## resources
 https://lasr.cs.ucla.edu/vahab/resources/compression_detection.pdf
