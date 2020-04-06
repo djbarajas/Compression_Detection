@@ -41,6 +41,17 @@
 
 // we have two different checksums: One for our UDP packets and the other for the TCP connection.
 
+void read_high_entropy_data(uint8_t * data, int len){
+    FILE* file_ptr = NULL;
+    char temp;
+    file_ptr =  fopen("/dev/random", "r");
+    for (int i = 0; i < len; i++){
+        temp = getc(file_ptr);
+        data[i] = temp;
+    }
+    fclose(file_ptr);
+}
+
 // Computing the internet checksum (RFC 1071).
 // Note that the internet checksum does not preclude collisions.
 uint16_t checksum(uint16_t *addr, int len){
@@ -285,6 +296,19 @@ uint8_t *allocate_ustrmem(int len){
   }
 }
 
+/*
+* Packet ids
+*/
+void packet_id_setup (uint8_t* bin, unsigned int val)
+{
+    unsigned int copy_of_value = val;
+    for(int i = 15; i >= 0 ;i--)
+    {
+        bin[i] = (copy_of_value & 0b1) +'0';
+        copy_of_value >>= 1;
+    }
+}
+
 
 int main(int argc, char **argv){
 
@@ -298,7 +322,7 @@ int main(int argc, char **argv){
       fprintf (stderr, "ERROR: Too few or many arguments.\n");
       exit (EXIT_FAILURE);
   }
-
+  unsigned int packet_id = 0;
   //read JSON file to obtain data (TTL will be our main variable)
   struct json packet_info;
   char buff[1000] = {0};
@@ -309,14 +333,15 @@ int main(int argc, char **argv){
   char *interface, *target, *src_ip, *dst_ip;
   struct ip iphdr;
   struct tcphdr tcphdr;
-  uint8_t *packet, *packet_udp;
+  uint8_t *tcp_pkt_hd, *udp_pkt, *tcp_pkt_tl, *udp_pkt_2;
   struct addrinfo hints, *res;
   struct sockaddr_in *ipv4, sin;
   struct ifreq ifr;
   void *tmp;
 
   // Allocate memory for various arrays.
-  packet = allocate_ustrmem (IP_MAXPACKET);
+  tcp_pkt_hd = allocate_ustrmem (IP_MAXPACKET);
+  tcp_pkt_tl = allocate_ustrmem (IP_MAXPACKET);
   interface = allocate_strmem (40);
   target = allocate_strmem (40);
   src_ip = allocate_strmem (INET_ADDRSTRLEN);
@@ -497,11 +522,22 @@ int main(int argc, char **argv){
   // Prepare packet.
 
   // First part is an IPv4 header.
-  memcpy (packet, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
+  memcpy (tcp_pkt_hd, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
 
   // Next part of packet is upper layer protocol header.
-  memcpy ((packet + IP4_HDRLEN), &tcphdr, TCP_HDRLEN * sizeof (uint8_t));
+  memcpy ((tcp_pkt_hd + IP4_HDRLEN), &tcphdr, TCP_HDRLEN * sizeof (uint8_t));
 
+  tcphdr.th_dport = htons (atoi(packet_info.dest_prt_tcp_tail));
+
+  // TCP checksum (16 bits)
+  tcphdr.th_sum = tcp4_checksum (iphdr, tcphdr);
+
+  // First part is an IPv4 header.
+  memcpy (tcp_pkt_tl, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
+
+  // Next part of packet is upper layer protocol header.
+  memcpy ((tcp_pkt_tl + IP4_HDRLEN), &tcphdr, TCP_HDRLEN * sizeof (uint8_t));
+  
   // The kernel is going to prepare layer 2 information (ethernet frame header) for us.
   // For that, we need to specify a destination for the kernel in order for it
   // to decide where to send the raw datagram. We fill in a struct in_addr with
@@ -528,11 +564,6 @@ int main(int argc, char **argv){
     exit (EXIT_FAILURE);
   }
 
-    // Send packet.
-  if (sendto (sd, packet, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
-    perror ("sendto() failed ");
-    exit (EXIT_FAILURE);
-  }
   struct udphdr udphdr;
 
   uint8_t * data = allocate_ustrmem (packet_info.payload_sz);
@@ -564,28 +595,87 @@ int main(int argc, char **argv){
 
   // Ethernet frame length = ethernet data (IP header + UDP header + UDP data)
   int frame_length = IP4_HDRLEN + UDP_HDRLEN + datalen;
-  packet_udp = allocate_ustrmem (IP_MAXPACKET);
+  udp_pkt = allocate_ustrmem (IP_MAXPACKET);
+  udp_pkt_2 = allocate_ustrmem (IP_MAXPACKET);
 
   // IPv4 header
-  memcpy (packet_udp, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
+  memcpy (udp_pkt, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
 
   // UDP header
-  memcpy (packet_udp + IP4_HDRLEN, &udphdr, UDP_HDRLEN);
+  memcpy (udp_pkt + IP4_HDRLEN, &udphdr, UDP_HDRLEN);
 
   // UDP data
-  memcpy (packet_udp + IP4_HDRLEN + UDP_HDRLEN, data, datalen);
+  memcpy (udp_pkt + IP4_HDRLEN + UDP_HDRLEN, data, datalen);
 
-  // Send ethernet frame to socket.
-  if ((bytes = sendto (sd, packet_udp, frame_length, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr))) <= 0) {
-    perror ("sendto() failed");
+  read_high_entropy_data(&data[16], packet_info.payload_sz-16);
+
+
+    // IPv4 header
+  memcpy (udp_pkt_2, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
+
+  // UDP header
+  memcpy (udp_pkt_2 + IP4_HDRLEN, &udphdr, UDP_HDRLEN);
+
+  // UDP data
+  memcpy (udp_pkt_2 + IP4_HDRLEN + UDP_HDRLEN, data, datalen);
+
+  // Send packet.
+  if (sendto (sd, tcp_pkt_hd, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+    perror ("sendto() failed ");
     exit (EXIT_FAILURE);
   }
+
+  for (int i = 0; i < packet_info.num_of_packets; i++)
+  {
+  		packet_id_setup(udp_pkt + IP4_HDRLEN + UDP_HDRLEN, packet_id++);
+  	// Send ethernet frame to socket.
+	  if ((bytes = sendto (sd, udp_pkt, frame_length, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr))) <= 0) {
+	    perror ("sendto() failed");
+	    exit (EXIT_FAILURE);
+	  }
+  }
+
+  if (sendto (sd, tcp_pkt_tl, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+    perror ("sendto() failed ");
+    exit (EXIT_FAILURE);
+  }
+
+  sleep(packet_info.in_time);
+
+    // Send packet.
+  if (sendto (sd, tcp_pkt_hd, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+    perror ("sendto() failed ");
+    exit (EXIT_FAILURE);
+  }
+
+  for (int i = 0; i < packet_info.num_of_packets; i++)
+  {
+  		packet_id_setup(udp_pkt_2 + IP4_HDRLEN + UDP_HDRLEN, packet_id++);
+  	// Send ethernet frame to socket.
+	  if ((bytes = sendto (sd, udp_pkt_2, frame_length, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr))) <= 0) {
+	    perror ("sendto() failed");
+	    exit (EXIT_FAILURE);
+	  }
+  }
+
+  if (sendto (sd, tcp_pkt_tl, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
+    perror ("sendto() failed ");
+    exit (EXIT_FAILURE);
+  }
+
+
+
+
 
   // Close socket descriptor.
   close (sd);
 
   // Free allocated memory.
-  free (packet);
+  free (tcp_pkt_hd);
+  free (tcp_pkt_tl);
+  free (udp_pkt);
+  free (udp_pkt_2);
+  free (data);
   free (interface);
   free (target);
   free (src_ip);
