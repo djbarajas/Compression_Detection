@@ -1,7 +1,7 @@
  PROGS = client_cooperative server_cooperative standalone read_json
  OBJS = read_json.o 
 
- CFLAGS = -g
+ CFLAGS = -g 
 
 standalone : standalone.c read_json.o
 
@@ -14,6 +14,8 @@ server_cooperative : server_cooperative.c read_json.o
 read_json : read_json.c read_json.h read_json.o
 	gcc ${CFLAGS} -o $@ $^
 
+t: t.c
+	gcc ${CFLAGS} -o $@ $^ -lpcap
 
 clean:
 	rm -rf ${PROGS} ${OBJS} *.dSYM

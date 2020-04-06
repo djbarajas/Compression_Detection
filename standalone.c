@@ -32,6 +32,7 @@
 #define IP4_HDRLEN 20         // IPv4 header length
 #define TCP_HDRLEN 20         // TCP header length, excludes options data
 #define ICMP_HDRLEN 8         // ICMP header length for echo request, excludes data
+#define UDP_HDRLEN  8         // UDP header length, excludes data
 
 /* 
   *this class is responsible for compression detection with an uncooperative server* 
@@ -308,7 +309,7 @@ int main(int argc, char **argv){
   char *interface, *target, *src_ip, *dst_ip;
   struct ip iphdr;
   struct tcphdr tcphdr;
-  uint8_t *packet;
+  uint8_t *packet, *packet_udp;
   struct addrinfo hints, *res;
   struct sockaddr_in *ipv4, sin;
   struct ifreq ifr;
@@ -527,9 +528,56 @@ int main(int argc, char **argv){
     exit (EXIT_FAILURE);
   }
 
-  // Send packet.
+    // Send packet.
   if (sendto (sd, packet, IP4_HDRLEN + TCP_HDRLEN, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr)) < 0)  {
     perror ("sendto() failed ");
+    exit (EXIT_FAILURE);
+  }
+  struct udphdr udphdr;
+
+  uint8_t * data = allocate_ustrmem (packet_info.payload_sz);
+    // UDP data
+  int datalen = packet_info.payload_sz;
+  memset (data, 0, packet_info.payload_sz);
+  // Transport layer protocol (8 bits): 17 for UDP
+  iphdr.ip_p = IPPROTO_UDP;
+
+    // IPv4 header checksum (16 bits): set to 0 when calculating checksum
+  iphdr.ip_sum = 0;
+  iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
+
+  // UDP header
+
+  // Source port number (16 bits): pick a number
+  udphdr.source = htons (4950);
+
+  // Destination port number (16 bits): pick a number
+  udphdr.dest = htons (9999);
+
+  // Length of UDP datagram (16 bits): UDP header + UDP data
+  udphdr.len = htons (UDP_HDRLEN + datalen);
+
+  // UDP checksum (16 bits)
+  udphdr.check = udp4_checksum (iphdr, udphdr, data, datalen);
+
+  // Fill out ethernet frame header.
+
+  // Ethernet frame length = ethernet data (IP header + UDP header + UDP data)
+  int frame_length = IP4_HDRLEN + UDP_HDRLEN + datalen;
+  packet_udp = allocate_ustrmem (IP_MAXPACKET);
+
+  // IPv4 header
+  memcpy (packet_udp, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
+
+  // UDP header
+  memcpy (packet_udp + IP4_HDRLEN, &udphdr, UDP_HDRLEN);
+
+  // UDP data
+  memcpy (packet_udp + IP4_HDRLEN + UDP_HDRLEN, data, datalen);
+
+  // Send ethernet frame to socket.
+  if ((bytes = sendto (sd, packet_udp, frame_length, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr))) <= 0) {
+    perror ("sendto() failed");
     exit (EXIT_FAILURE);
   }
 
