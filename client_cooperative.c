@@ -140,10 +140,22 @@ int main()
     int sockfd, connfd, val, clientlen; 
     struct sockaddr_in clientaddr, cli;
     struct json packet_info;
-    uint8_t *data;
+    uint8_t *data, *data_2;
     
 
     char buff[1000] = {0};
+
+    data = allocate_ustrmem(packet_info.payload_sz);
+
+    data_2 = allocate_ustrmem(packet_info.payload_sz);
+
+    bzero(data, packet_info.payload_sz);
+
+    bzero(data_2, packet_info.payload_sz);
+
+    read_high_entropy_data(&data_2[16], packet_info.payload_sz-16);
+    printf("Finished reading high entropy data\n");
+
     read_json(&packet_info, "myconfig.json", buff); 
 
     packet_setup(packet_info, SOCK_STREAM, &sockfd, &clientaddr);
@@ -180,7 +192,7 @@ int main()
     /**
         Probing phase [send in UDP packet trains of high and low entropy data each of quantity 6000] 
     */
-    sleep (25);
+    sleep (20);
 
     //send_packet_train(&packet_info);
     struct sockaddr_in addr, srcaddr;
@@ -222,7 +234,6 @@ int main()
 
     //let's setup UDP low entropy payload 
 
-    data = allocate_ustrmem(packet_info.payload_sz);
     clientlen = sizeof(addr);
 
 
@@ -234,14 +245,10 @@ int main()
     }
 
     sleep(packet_info.in_time);
-
-    bzero(data, packet_info.payload_sz);
-
-    read_high_entropy_data(&data[16], packet_info.payload_sz-16);
-    printf("Finished reading high entropy data");
+    
     for (int i=0;i<packet_info.num_of_packets;i++){
-        packet_id_setup(data, packet_id++);
-        if(sendto(fd,data,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
+        packet_id_setup(data_2, packet_id++);
+        if(sendto(fd,data_2,packet_info.payload_sz,MSG_CONFIRM,(struct sockaddr *) &addr,clientlen)<=0){
             continue;
         }  
     }
@@ -287,5 +294,9 @@ int main()
     bzero(buff, 1000); 
     recv(sockfd, buff, 50, 0);
     printf("%s\n",buff); 
+
+    free(data);
+    free(data_2);
+
 } 
 
