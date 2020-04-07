@@ -128,7 +128,7 @@ void send_packet_train(struct json* packet_info)
     close(sockfd); 
 }
   
-int main() 
+int main(int argc, char **argv) 
 { 
     char binary[16];
   
@@ -145,6 +145,11 @@ int main()
 
     char buff[1000] = {0};
 
+    if (argc != 2){
+      fprintf (stderr, "ERROR: Too few or many arguments.\n");
+      exit (EXIT_FAILURE);
+    }
+
     data = allocate_ustrmem(packet_info.payload_sz);
 
     data_2 = allocate_ustrmem(packet_info.payload_sz);
@@ -156,7 +161,7 @@ int main()
     read_high_entropy_data(&data_2[16], packet_info.payload_sz-16);
     printf("Finished reading high entropy data\n");
 
-    read_json(&packet_info, "myconfig.json", buff); 
+    read_json(&packet_info, argv[1], buff); 
 
     packet_setup(packet_info, SOCK_STREAM, &sockfd, &clientaddr);
 
