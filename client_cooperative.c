@@ -16,8 +16,6 @@
 #define PORT     8080 
 #define MAXLINE 1024 
 
-
-
 void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
     
     *sockfd = socket(AF_INET, socket_type, 0); 
@@ -266,5 +264,4 @@ int main(int argc, char **argv)
     free(data);
     free(data_2);
 
-} 
-
+}  
