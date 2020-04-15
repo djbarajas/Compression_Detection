@@ -224,6 +224,10 @@ int main()
   
     len = sizeof(cliaddr);  //len is value/resuslt 
 
+    recvfrom(fd, (char *)buffer, tcp_info.payload_sz,  
+               MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
+               &len);
+
     start_t = clock();
     for (int i=0;i<tcp_info.num_of_packets;i++){ 
       
@@ -253,7 +257,7 @@ int main()
 
     close(fd);
 
-    sleep(32);
+    sleep(20);
 
     //final tcp connection
 
@@ -326,8 +330,5 @@ int main()
 
     free(buffer);
     close(sockfd);
-
-
-
 } 
  
