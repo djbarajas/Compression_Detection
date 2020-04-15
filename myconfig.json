@@ -7,6 +7,6 @@
 	"Port Number for TCP" : "8081",
 	"Payload Size" : "100",
 	"Inter-Measurement Time" : "15",
-	"Number of UDP Packets" : "2",
+	"Number of UDP Packets" : "10",
 	"TTL" : "255"
 }

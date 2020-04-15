@@ -8,7 +8,11 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <time.h>
+
 #include "read_json.h"
+#include "allocations.h"
+#include "packet_setup.h"
+
 #define SA struct sockaddr
 #define THRESH 100
 
