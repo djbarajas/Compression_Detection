@@ -1,4 +1,4 @@
- PROGS = client_cooperative server_cooperative standalone read_json allocations packet_setup
+ PROGS = client_cooperative server_cooperative standalone read_json allocations packet_setup t
  OBJS = read_json.o allocations.o packet_setup.o
 
  CFLAGS = -g 
