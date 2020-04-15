@@ -7,34 +7,16 @@
 #include <errno.h> 
 #include <string.h>
 #include <arpa/inet.h>
+
+#include "allocations.h"
+#include "packet_setup.h"
 #include "read_json.h"
+
 #define SA struct sockaddr 
 #define PORT     8080 
 #define MAXLINE 1024 
 
 
-/*
-* Packet ids
-*/
-void packet_id_setup (char* bin, unsigned int val)
-{
-    unsigned int copy_of_value = val;
-    for(int i = 15; i >= 0 ;i--)
-    {
-        bin[i] = (copy_of_value & 0b1) +'0';
-        copy_of_value >>= 1;
-    }
-}
-
-
-void read_high_entropy_data(uint8_t * data, int len) {
-    FILE* file_ptr = NULL;
-    file_ptr =  fopen("/dev/random", "r");
-    for (int i = 0; i < len-1; i++) {
-        data[i] = getc(file_ptr);
-    }
-    fclose(file_ptr);
-}
 
 void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr){
     
@@ -60,27 +42,6 @@ void packet_setup(struct json packet_info, int socket_type, int* sockfd,struct s
 
 }
 
-// Allocate memory for an array of unsigned chars.
-uint8_t * allocate_ustrmem(int len)
-{
-  void *tmp;
-
-
-  if (len <= 0) {
-    fprintf (stderr, "ERROR: Cannot allocate memory because len = %i in allocate_ustrmem().\n", len);
-    exit (EXIT_FAILURE);
-  }
-
-  tmp = (uint8_t *) malloc (len * sizeof (uint8_t));
-  if (tmp != NULL) {
-    memset (tmp, 0, len * sizeof (uint8_t));
-    return (tmp);
-  } else {
-    fprintf (stderr, "ERROR: Cannot allocate memory for array allocate_ustrmem().\n");
-    exit (EXIT_FAILURE);
-  }
-
-}
 
 void func(int sockfd, char * buff, int len) 
 { 
