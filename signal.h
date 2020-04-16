@@ -6,7 +6,8 @@
 #include <stdlib.h>
 
 
-void sigalarm_handler(int signo);
+void 
+sigalarm_handler(int signo);
 
 
 

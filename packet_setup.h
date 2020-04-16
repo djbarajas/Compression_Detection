@@ -8,7 +8,10 @@
 #include <string.h>
 
 
-void packet_id_setup (char* bin, unsigned int val);
-void read_high_entropy_data(uint8_t * data, int len);
+void 
+packet_id_setup (char* bin, unsigned int val);
+
+void 
+read_high_entropy_data(uint8_t * data, int len);
 
 #endif
