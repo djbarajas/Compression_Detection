@@ -12,6 +12,7 @@
 #include "read_json.h"
 #include "allocations.h"
 #include "packet_setup.h"
+#include "signal.h"
 
 #define SA struct sockaddr
 #define THRESH 100
@@ -179,6 +180,8 @@ void recv_udp_train(struct json* tcp_info )
 
 int main() 
 { 
+    signal(SIGALRM, sigalarm_handler);
+    alarm(300);
     int sockfd, connfd, len; 
     struct sockaddr_in servaddr, cli; 
     struct json tcp_info; 

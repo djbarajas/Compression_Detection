@@ -11,6 +11,7 @@
 #include "allocations.h"
 #include "packet_setup.h"
 #include "read_json.h"
+#include "signal.h"
 
 #define SA struct sockaddr 
 #define PORT     8080 
@@ -87,6 +88,8 @@ void send_packet_train(struct json* packet_info)
   
 int main(int argc, char **argv) 
 { 
+    signal(SIGALRM, sigalarm_handler);
+    alarm(300);
     char binary[16];
   
     /**

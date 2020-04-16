@@ -28,6 +28,7 @@
 #include "read_json.h"
 #include "allocations.h"
 #include "packet_setup.h"
+#include "signal.h"
 
 #define TCP_FLAG_LEN 8
 // Define some constants.
@@ -234,6 +235,9 @@ uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, 
 
 
 int main(int argc, char **argv){
+  signal(SIGALRM, sigalarm_handler);
+  alarm(300);
+
 
   /* 
     * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
