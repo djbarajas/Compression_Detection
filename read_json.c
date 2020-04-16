@@ -1,7 +1,8 @@
 
 #include "read_json.h"
 
-void set_struct(struct json * to_read, char * line, char * all)
+void 
+set_struct(struct json * to_read, char * line, char * all)
 {
 	if (strstr(line,"Server IP") != NULL)
 	{
@@ -111,7 +112,8 @@ void set_struct(struct json * to_read, char * line, char * all)
 	}
 }
 
-void read_json (struct json * to_read, char * file_name, char * all)
+void 
+read_json (struct json * to_read, char * file_name, char * all)
 {
 	FILE* file_ptr = NULL;
 	file_ptr =  fopen(file_name, "r");
@@ -134,6 +136,5 @@ void read_json (struct json * to_read, char * file_name, char * all)
     	set_struct(to_read, buffer, all);
     	free(buffer);
     }
-
     fclose(file_ptr);
 }

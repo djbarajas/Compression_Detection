@@ -20,7 +20,8 @@ struct json
 	int TTL;
 };
 
-void read_json (struct json * to_read, char * file_name, char * all);
+void 
+read_json (struct json * to_read, char * file_name, char * all);
 
 
 #endif

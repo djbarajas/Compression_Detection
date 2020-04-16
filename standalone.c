@@ -48,7 +48,9 @@
 
 // Computing the internet checksum (RFC 1071).
 // Note that the internet checksum does not preclude collisions.
-uint16_t checksum(uint16_t *addr, int len){
+uint16_t 
+checksum(uint16_t *addr, int len)
+{
   int count = len;
   register uint32_t sum = 0;
   uint16_t answer = 0;
@@ -78,7 +80,8 @@ uint16_t checksum(uint16_t *addr, int len){
 }
 
 // Build IPv4 TCP pseudo-header and call checksum function.
-uint16_t tcp4_checksum (struct ip iphdr, struct tcphdr tcphdr)
+uint16_t 
+tcp4_checksum (struct ip iphdr, struct tcphdr tcphdr)
 {
   uint16_t svalue;
   char buf[IP_MAXPACKET], cvalue;
@@ -165,7 +168,9 @@ uint16_t tcp4_checksum (struct ip iphdr, struct tcphdr tcphdr)
 }
 
 // Build IPv4 UDP pseudo-header and call checksum function.
-uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen){
+uint16_t 
+udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen)
+{
   char buf[IP_MAXPACKET];
   char *ptr;
   int chksumlen = 0;
@@ -234,11 +239,11 @@ uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, 
 }
 
 
-int main(int argc, char **argv){
+int 
+main(int argc, char **argv)
+{
   signal(SIGALRM, sigalarm_handler);
   alarm(300);
-
-
   /* 
     * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
       packet data specifications (layers and payload)
@@ -278,9 +283,9 @@ int main(int argc, char **argv){
 
   // Interface to send packet through.
   strcpy (interface, "enp0s3");
-
+  sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   // Submit request for a socket descriptor to look up interface.
-  if ((sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+  if (sd < 0) {
     perror ("socket() failed to get socket descriptor for using ioctl() ");
     exit (EXIT_FAILURE);
   }
@@ -313,9 +318,9 @@ int main(int argc, char **argv){
   hints.ai_family = AF_INET;
   hints.ai_socktype = SOCK_STREAM;
   hints.ai_flags = hints.ai_flags | AI_CANONNAME;
-
+  status = getaddrinfo (target, NULL, &hints, &res);
   // Resolve target using getaddrinfo().
-  if ((status = getaddrinfo (target, NULL, &hints, &res)) != 0) {
+  if (status != 0) {
     fprintf (stderr, "getaddrinfo() failed: %s\n", gai_strerror (status));
     exit (EXIT_FAILURE);
   }
@@ -329,7 +334,6 @@ int main(int argc, char **argv){
   freeaddrinfo (res);
 
   // IPv4 header
-
   // IPv4 header length (4 bits): Number of 32-bit words in header = 5
   iphdr.ip_hl = IP4_HDRLEN / sizeof (uint32_t);
 
@@ -369,15 +373,16 @@ int main(int argc, char **argv){
 
   // Transport layer protocol (8 bits): 6 for TCP
   iphdr.ip_p = IPPROTO_TCP;
-
+  status = inet_pton (AF_INET, src_ip, &(iphdr.ip_src));
   // Source IPv4 address (32 bits)
-  if ((status = inet_pton (AF_INET, src_ip, &(iphdr.ip_src))) != 1) {
+  if (status != 1) {
     fprintf (stderr, "inet_pton() failed.\nError message: %s", strerror (status));
     exit (EXIT_FAILURE);
   }
 
+  status = inet_pton (AF_INET, dst_ip, &(iphdr.ip_dst));
   // Destination IPv4 address (32 bits)
-  if ((status = inet_pton (AF_INET, dst_ip, &(iphdr.ip_dst))) != 1) {
+  if (status != 1) {
     fprintf (stderr, "inet_pton() failed.\nError message: %s", strerror (status));
     exit (EXIT_FAILURE);
   }
@@ -387,7 +392,6 @@ int main(int argc, char **argv){
   iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
 
   // TCP header
-
   // Source port number (16 bits)
   tcphdr.th_sport = htons (8080);
 
@@ -433,6 +437,7 @@ int main(int argc, char **argv){
   tcp_flags[7] = 0;
 
   tcphdr.th_flags = 0;
+
   for (i=0; i<8; i++) {
     tcphdr.th_flags += (tcp_flags[i] << i);
   }
@@ -472,9 +477,9 @@ int main(int argc, char **argv){
   memset (&sin, 0, sizeof (struct sockaddr_in));
   sin.sin_family = AF_INET;
   sin.sin_addr.s_addr = iphdr.ip_dst.s_addr;
-
+  sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW);
   // Submit request for a raw socket descriptor.
-  if ((sd = socket (AF_INET, SOCK_RAW, IPPROTO_RAW)) < 0) {
+  if (sd < 0) {
     perror ("socket() failed ");
     exit (EXIT_FAILURE);
   }
@@ -539,7 +544,7 @@ int main(int argc, char **argv){
   read_high_entropy_data(&data[16], packet_info.payload_sz-16);
 
 
-    // IPv4 header
+  // IPv4 header
   memcpy (udp_pkt_2, &iphdr, IP4_HDRLEN * sizeof (uint8_t));
 
   // UDP header
@@ -556,7 +561,7 @@ int main(int argc, char **argv){
 
   for (int i = 0; i < packet_info.num_of_packets; i++)
   {
-  		packet_id_setup(udp_pkt + IP4_HDRLEN + UDP_HDRLEN, packet_id++);
+  	packet_id_setup(udp_pkt + IP4_HDRLEN + UDP_HDRLEN, packet_id++);
   	// Send ethernet frame to socket.
 	  if ((bytes = sendto (sd, udp_pkt, frame_length, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr))) <= 0) {
 	    perror ("sendto() failed");
@@ -579,7 +584,7 @@ int main(int argc, char **argv){
 
   for (int i = 0; i < packet_info.num_of_packets; i++)
   {
-  		packet_id_setup(udp_pkt_2 + IP4_HDRLEN + UDP_HDRLEN, packet_id++);
+  	packet_id_setup(udp_pkt_2 + IP4_HDRLEN + UDP_HDRLEN, packet_id++);
   	// Send ethernet frame to socket.
 	  if ((bytes = sendto (sd, udp_pkt_2, frame_length, 0, (struct sockaddr *) &sin, sizeof (struct sockaddr))) <= 0) {
 	    perror ("sendto() failed");
@@ -591,14 +596,8 @@ int main(int argc, char **argv){
     perror ("sendto() failed ");
     exit (EXIT_FAILURE);
   }
-
-
-
-
-
   // Close socket descriptor.
   close (sd);
-
   // Free allocated memory.
   free (tcp_pkt_hd);
   free (tcp_pkt_tl);
@@ -611,6 +610,5 @@ int main(int argc, char **argv){
   free (dst_ip);
   free (ip_flags);
   free (tcp_flags);
-
   return (EXIT_SUCCESS);
 }

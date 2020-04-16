@@ -17,7 +17,8 @@
 #define SA struct sockaddr
 #define THRESH 100
 
-int tokenize(char * buff, struct json * tcp_info )
+int 
+tokenize(char * buff, struct json * tcp_info)
 {
     char * temp;
     while (*buff == ' ')
@@ -35,7 +36,7 @@ int tokenize(char * buff, struct json * tcp_info )
     tcp_info->in_time = atoi(strsep(&buff, " "));
     tcp_info->num_of_packets = atoi(strsep(&buff, " "));
     tcp_info->TTL = atoi(strsep(&buff, " "));
-	
+
     if (tcp_info->server_ip == NULL || tcp_info->src_prt_udp == NULL ||
         tcp_info->dest_prt_udp == NULL || tcp_info->dest_prt_tcp_head == NULL ||
         tcp_info->dest_prt_tcp_tail == NULL || tcp_info->prt_tcp == NULL ||
@@ -47,24 +48,21 @@ int tokenize(char * buff, struct json * tcp_info )
         return 0;
     }
     return 1;
-
 }
 
 
 // Function designed for chat between client and server. 
-void func(int sockfd, char * buff, int len, struct json * tcp_info) 
+void 
+func(int sockfd, char * buff, int len, struct json * tcp_info) 
 {   
 	char new[8] = "ERROR!!";
 	char success[8] = "SUCCESS";
-
     bzero(buff, 1000); 
-
     // read the message from client and copy it in buffer 
     recv(sockfd, buff, 1000, 0); 
     // print buffer which contains the client contents 
     printf("From client: %s\n", buff); 
     int ret = tokenize(buff, tcp_info);
-
     if ( ret == 0 )
     {
     	send(sockfd, new, 8, 0);
@@ -79,7 +77,8 @@ void func(int sockfd, char * buff, int len, struct json * tcp_info)
     }
 }
 
-int server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr){
+int 
+server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr){
     
     int connfd,len;
 
@@ -106,7 +105,6 @@ int server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, stru
     } 
     else
         printf("Socket successfully binded..\n"); 
-  
     // Now server is ready to listen and verification 
     if ((listen(*sockfd, 5)) != 0) { 
         printf("Listen failed...\n"); 
@@ -116,10 +114,8 @@ int server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, stru
         printf("Server listening..\n"); 
 
     len = sizeof(*peer_addr); 
-  
     // Accept the data packet from client and verification 
     connfd = accept(*sockfd, (SA*)peer_addr, &len); 
-
     if (connfd < 0) { 
         printf("server acccept failed...\n"); 
         exit(0); 
@@ -130,62 +126,14 @@ int server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, stru
     return connfd;
 }
 
-
-void recv_udp_train(struct json* tcp_info )
-{
-    int sockfd; 
-    char buffer[1024]; 
-    char *hello = "Hello from server"; 
-    struct sockaddr_in servaddr, cliaddr; 
-      
-    // Creating socket file descriptor 
-    if ( (sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
-        perror("socket creation failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-      
-    memset(&servaddr, 0, sizeof(servaddr)); 
-    memset(&cliaddr, 0, sizeof(cliaddr)); 
-      
-    // Filling server information 
-    servaddr.sin_family    = AF_INET; // IPv4 
-    servaddr.sin_addr.s_addr = INADDR_ANY;
-    printf("dest prt %d\n", atoi(tcp_info->dest_prt_udp) );
-    servaddr.sin_port = htons(atoi(tcp_info->dest_prt_udp)); 
-      
-    // Bind the socket with the server address 
-    if ( bind(sockfd, (const struct sockaddr *)&servaddr,  
-            sizeof(servaddr)) < 0 ) 
-    { 
-        perror("bind failed"); 
-        exit(EXIT_FAILURE); 
-    } 
-      
-    int len, n; 
-  
-    len = sizeof(cliaddr);  //len is value/resuslt 
-  
-    n = recvfrom(sockfd, (char *)buffer, 1024,  
-                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
-                &len); 
-    buffer[n] = '\0'; 
-    printf("Client : %s\n", buffer); 
-    sendto(sockfd, (const char *)hello, strlen(hello),  
-        MSG_CONFIRM, (const struct sockaddr *) &cliaddr, 
-            len); 
-    printf("Hello message sent.\n"); 
-}
-
-  
-
-int main() 
+int 
+main(int argc, char ** argv) 
 { 
     signal(SIGALRM, sigalarm_handler);
     alarm(300);
     int sockfd, connfd, len; 
     struct sockaddr_in servaddr, cli; 
     struct json tcp_info; 
-
     char buff[1000];
   
     connfd = server_setup(SOCK_STREAM,&sockfd,&servaddr,&cli);
@@ -198,9 +146,9 @@ int main()
     char *buffer =  calloc(tcp_info.payload_sz, sizeof(char));  
     struct sockaddr_in  cliaddr;
     int fd; 
-      
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
     // Creating socket file descriptor 
-    if ( (fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { 
+    if ( fd < 0 ) { 
         perror("socket creation failed"); 
         exit(EXIT_FAILURE); 
     } 
@@ -209,12 +157,12 @@ int main()
 
       
     // Filling server information 
-    servaddr.sin_family    = AF_INET; // IPv4 
+    servaddr.sin_family      = AF_INET; // IPv4 
     servaddr.sin_addr.s_addr = htonl(INADDR_ANY); 
-    servaddr.sin_port = htons(atoi(tcp_info.dest_prt_udp)); 
+    servaddr.sin_port        = htons(atoi(tcp_info.dest_prt_udp)); 
       
     // Bind the socket with the server address 
-    if ( bind(fd, (const struct sockaddr *)&servaddr,  
+    if (bind(fd, (const struct sockaddr *)&servaddr,  
             sizeof(servaddr)) < 0 ) 
     { 
         perror("bind failed"); 
@@ -228,25 +176,20 @@ int main()
     int  n; 
     clock_t start_t, end_t;
     double total_t, low_entropy, high_entropy;
-  
     len = sizeof(cliaddr);  //len is value/resuslt 
-
     recvfrom(fd, (char *)buffer, tcp_info.payload_sz,  
                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
                &len);
 
     start_t = clock();
     for (int i=0;i<tcp_info.num_of_packets;i++){ 
-      
         n = recvfrom(fd, (char *)buffer, tcp_info.payload_sz,  
                MSG_WAITALL, ( struct sockaddr *) &cliaddr, 
                &len); 
-
     }
     end_t = clock();
     total_t = (((double)end_t) - ((double)start_t)) / ((double)CLOCKS_PER_SEC);
     low_entropy = total_t * 1000;
-    printf("time : %f\n", low_entropy);
 
     sleep(tcp_info.in_time);
 
@@ -259,17 +202,14 @@ int main()
     end_t = clock();
     total_t = (((double)end_t) - ((double)start_t)) / ((double)CLOCKS_PER_SEC);
     high_entropy = total_t * 1000;
+    printf("time : %f\n", low_entropy);
     printf("time 2 : %f\n", high_entropy);    
-
-
     close(fd);
 
     sleep(20);
 
     //final tcp connection
-
     struct sockaddr_in serv_end, cliaddr_end;
-  
     // socket create and verification 
     sockfd = socket(AF_INET, SOCK_STREAM, 0); 
     if (sockfd == -1) { 
@@ -321,20 +261,11 @@ int main()
     else
     {
         strcpy(compression, "COMPRESSION NOT DETECTED");
-
     }
-    
-
     bzero(buff, sizeof(buff));
-
-
     // read the message from client and copy it in buffer 
     recv(sockfd, buff, 1000, 0);
-
     send(connfd, compression, 50, 0);
-
-
-
     free(buffer);
     close(sockfd);
 } 
