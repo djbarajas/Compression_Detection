@@ -28,6 +28,7 @@
 #include "read_json.h"
 #include "allocations.h"
 #include "packet_setup.h"
+#include "signal.h"
 
 #define TCP_FLAG_LEN 8
 // Define some constants.
@@ -234,6 +235,9 @@ uint16_t udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, 
 
 
 int main(int argc, char **argv){
+  signal(SIGALRM, sigalarm_handler);
+  alarm(300);
+
 
   /* 
     * unlike our server_cooperative/client_cooperative  we are using raw sockets for deeper control over the
@@ -361,7 +365,7 @@ int main(int argc, char **argv){
                       +  ip_flags[3]);
 
   // Time-to-Live (8 bits): default to maximum value
-  iphdr.ip_ttl = packet_info.TTL;
+  iphdr.ip_ttl = 255;
 
   // Transport layer protocol (8 bits): 6 for TCP
   iphdr.ip_p = IPPROTO_TCP;
@@ -495,8 +499,10 @@ int main(int argc, char **argv){
   memset (data, 0, packet_info.payload_sz);
   // Transport layer protocol (8 bits): 17 for UDP
   iphdr.ip_p = IPPROTO_UDP;
+  iphdr.ip_ttl = packet_info.TTL;
 
-    // IPv4 header checksum (16 bits): set to 0 when calculating checksum
+
+  // IPv4 header checksum (16 bits): set to 0 when calculating checksum
   iphdr.ip_sum = 0;
   iphdr.ip_sum = checksum ((uint16_t *) &iphdr, IP4_HDRLEN);
 
