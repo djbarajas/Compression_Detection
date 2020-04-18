@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     pcap_t *handle;
     char error_buffer[PCAP_ERRBUF_SIZE];
     struct bpf_program filter;
-    char filter_exp[] = "(dst 192.168.86.215) && (src 192.168.86.211) && (tcp[tcpflags] & (tcp-rst) != 0)";
+    char filter_exp[] = "(dst 192.168.86.215) && (src 192.168.86.211) && (tcp[tcpflags] & (tcp-rst) != 0) && ((port 8081) || (port 8082))"; //check port number
     bpf_u_int32 subnet_mask, ip;
 
     if (pcap_lookupnet(dev, &ip, &subnet_mask, error_buffer) == -1) {

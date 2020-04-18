@@ -4,7 +4,7 @@
  CFLAGS = -g 
 
 standalone : standalone.c read_json.o allocations.o packet_setup.o signal.o
-	gcc ${CFLAGS} -o $@ $^
+	gcc ${CFLAGS} -o $@ $^ -lpcap
 
 client_cooperative : client_cooperative.c read_json.o allocations.o packet_setup.o signal.o
 	gcc ${CFLAGS} -o $@ $^
