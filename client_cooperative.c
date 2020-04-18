@@ -15,7 +15,6 @@
 
 #define SA struct sockaddr 
 #define PORT     8080 
-#define MAXLINE 1024 
 
 void 
 packet_setup (struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr)
