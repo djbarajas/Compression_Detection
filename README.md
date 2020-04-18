@@ -20,10 +20,43 @@ Unlike cooperative servers, responsive hosts are free from any restrictions or o
 
 An initial TCP connection is established to send a SYN packet to an arbitrary server. These packets are assigned to a closed port **x** in order to proceed with the three-way handshake, yet are dropped with an alert being sent back to the client. the client then sends the packet trains discussed earlier to a valid port and ends the connection with a final TCP connection to port **y** to retrieve our second RST packet. the difference of duration between the arrival of both alerting packets will be measured and compared to the threshold previously mentioned to detect compression. 
 
-## Usage
+## Usage for client
 
 ```bash
+make client_cooperative
+./client_cooperative myconfig.json
+```
 
+## Usage for server
+
+```bash
+make server_cooperative
+./server_cooperative
+```
+
+## Usage for standalone (run once)
+
+```bash
+make standalone
+./standalone myconfig.json
+```
+
+## Usage for standalone (incrementing TTL)
+
+```bash
+bash standalone.sh
+```
+
+or  
+
+```bash
+./stadalone.sh
+```
+
+and you may need to run the command below if you choose the second option
+
+```bash
+chmod +x standalone.sh
 ```
 
 ## resources
