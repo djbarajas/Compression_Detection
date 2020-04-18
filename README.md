@@ -59,5 +59,23 @@ and you may need to run the command below if you choose the second option
 chmod +x standalone.sh
 ```
 
+## Design Choices
+
+1. We chose to have a timeout of 5 minutes for all applications.  We felt that this was long enough for any of our programs to find the answer so if they didn't then something must have gone wrong.
+
+2. We chose to not include the myconfig.json in the server side because the point of the first TCP connection was to send over the information so there would be no reason to have the first connection if the server already had the information.
+
+3. For the client server application we decided to use regular socet connections to make our programs easier to understand and because we did not need to.  However, for the standalone we decided to use the more indepth example of raw sackets setting up each frame to learn more as well as have more control.
+
+4. We split up our code into header files, multiple c files, and a makefile.  This was to make the code cleaner.
+
+5. We used json format for the config file with all the options specified in the project directions. We then created a struct to put in this information.
+
+6. For the standalone, we decided to use the pcap library in order to capture the RST packets and forked the process.  The child would be the packet capturer and the parent would be the sender of the packets.  Just to be safe, we added a slight delay of 5 seconds in the parent process before sending the packets so the child has time to get set up.
+
+7. For the client and server application, we decided to send 1 extra UDP packet that would not be part of the timing test (this is why there is an extra packet in the packet capture).  We wanted to make our timing of compression accurate and because the server needs to start the connection before the client, we thought the best way to synchronize the programs would be to send the extra packet that would not be part of the test and would end up making the timingtest more accurate.
+
+8. For the standalone we decided to make the program run once by running ./standalone with whatever configuration the user chooses then made a wrapper script incrementing the TTL for the last part of the project for detecting compression.  The easiest way to do this was to add an extra argument for the standalone program to take in a TTL if the user specified which would overwrite what was read in from the config file in the struct that we created.  If the user wishes they could specify a TTL for example ./standalone myconfig.json 100, but this option is really meant for the wrapper script that we created.
+
 ## resources
 https://lasr.cs.ucla.edu/vahab/resources/compression_detection.pdf
