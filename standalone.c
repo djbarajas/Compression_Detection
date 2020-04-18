@@ -7,40 +7,12 @@
     *free addr info term?
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <netdb.h> 
-#include <sys/types.h> 
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <linux/if_ether.h>
-#include <netinet/tcp.h>      // struct tcphdr
-#include <netinet/udp.h>      // struct tcphdr
-#include <sys/ioctl.h> 
-#include <netinet/ip.h>
-#include <arpa/inet.h> 
-#include <errno.h>
-#include <linux/if_packet.h>
-#include <net/if.h>
-#include <time.h>
-#include <pcap.h>
-#include <sys/wait.h>
-
 #include "read_json.h"
 #include "allocations.h"
 #include "packet_setup.h"
 #include "signal.h"
 
-#define TCP_FLAG_LEN 8
-// Define some constants.
-// Define some constants.
-#define IP4_HDRLEN 20         // IPv4 header length
-#define TCP_HDRLEN 20         // TCP header length, excludes options data
-#define ICMP_HDRLEN 8         // ICMP header length for echo request, excludes data
-#define UDP_HDRLEN  8         // UDP header length, excludes data
-#define THRESH 100
+enum{THRESH=100, UDP_HDRLEN=8, ICMP_HDRLEN=8, TCP_HDRLEN=20, IP4_HDRLEN=20, TCP_FLAG_LEN=8};
 
 int times_index = 0;
 time_t times[4] = {0}; 
@@ -49,212 +21,11 @@ time_t times[4] = {0};
     *this class is responsible for compression detection with an uncooperative server* 
     *uncooperative denotes inability to obtain control of the server (but its still responsive)*
 */
-
-// we have two different checksums: One for our UDP packets and the other for the TCP connection.
-
-
-// Computing the internet checksum (RFC 1071).
-// Note that the internet checksum does not preclude collisions.
-uint16_t 
-checksum(uint16_t *addr, int len)
+void 
+my_packet_handler(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body)
 {
-    int count = len;
-    register uint32_t sum = 0;
-    uint16_t answer = 0;
 
-    // Sum up 2-byte values until none or only one byte left.
-    while(count > 1){
-        sum += *(addr++);
-        count -= 2;
-    }
-
-    // Add left-over byte, if any.
-    if(count > 0) {
-        sum += *(uint8_t *)addr;
-    }
-
-    // Fold 32-bit sum into 16 bits; we lose information by doing this,
-    // increasing the chances of a collision.
-    // sum = (lower 16 bits) + (upper 16 bits shifted right 16 bits)
-    while (sum >> 16) {
-        sum = (sum & 0xffff) + (sum >> 16);
-    }
-
-    // Checksum is one's compliment of sum.
-    answer = ~sum;
-
-    return (answer);
-}
-
-// Build IPv4 TCP pseudo-header and call checksum function.
-uint16_t 
-tcp4_checksum (struct ip iphdr, struct tcphdr tcphdr)
-{
-    uint16_t svalue;
-    char buf[IP_MAXPACKET], cvalue;
-    char *ptr;
-    int chksumlen = 0;
-
-    // ptr points to beginning of buffer buf
-    ptr = &buf[0];
-
-    // Copy source IP address into buf (32 bits)
-    memcpy (ptr, &iphdr.ip_src.s_addr, sizeof (iphdr.ip_src.s_addr));
-    ptr += sizeof (iphdr.ip_src.s_addr);
-    chksumlen += sizeof (iphdr.ip_src.s_addr);
-
-    // Copy destination IP address into buf (32 bits)
-    memcpy (ptr, &iphdr.ip_dst.s_addr, sizeof (iphdr.ip_dst.s_addr));
-    ptr += sizeof (iphdr.ip_dst.s_addr);
-    chksumlen += sizeof (iphdr.ip_dst.s_addr);
-
-    // Copy zero field to buf (8 bits)
-    *ptr = 0; ptr++;
-    chksumlen += 1;
-
-    // Copy transport layer protocol to buf (8 bits)
-    memcpy (ptr, &iphdr.ip_p, sizeof (iphdr.ip_p));
-    ptr += sizeof (iphdr.ip_p);
-    chksumlen += sizeof (iphdr.ip_p);
-
-    // Copy TCP length to buf (16 bits)
-    svalue = htons (sizeof (tcphdr));
-    memcpy (ptr, &svalue, sizeof (svalue));
-    ptr += sizeof (svalue);
-    chksumlen += sizeof (svalue);
-
-    // Copy TCP source port to buf (16 bits)
-    memcpy (ptr, &tcphdr.th_sport, sizeof (tcphdr.th_sport));
-    ptr += sizeof (tcphdr.th_sport);
-    chksumlen += sizeof (tcphdr.th_sport);
-
-    // Copy TCP destination port to buf (16 bits)
-    memcpy (ptr, &tcphdr.th_dport, sizeof (tcphdr.th_dport));
-    ptr += sizeof (tcphdr.th_dport);
-    chksumlen += sizeof (tcphdr.th_dport);
-
-    // Copy sequence number to buf (32 bits)
-    memcpy (ptr, &tcphdr.th_seq, sizeof (tcphdr.th_seq));
-    ptr += sizeof (tcphdr.th_seq);
-    chksumlen += sizeof (tcphdr.th_seq);
-
-    // Copy acknowledgement number to buf (32 bits)
-    memcpy (ptr, &tcphdr.th_ack, sizeof (tcphdr.th_ack));
-    ptr += sizeof (tcphdr.th_ack);
-    chksumlen += sizeof (tcphdr.th_ack);
-
-    // Copy data offset to buf (4 bits) and
-    // copy reserved bits to buf (4 bits)
-    cvalue = (tcphdr.th_off << 4) + tcphdr.th_x2;
-    memcpy (ptr, &cvalue, sizeof (cvalue));
-    ptr += sizeof (cvalue);
-    chksumlen += sizeof (cvalue);
-
-    // Copy TCP flags to buf (8 bits)
-    memcpy (ptr, &tcphdr.th_flags, sizeof (tcphdr.th_flags));
-    ptr += sizeof (tcphdr.th_flags);
-    chksumlen += sizeof (tcphdr.th_flags);
-
-    // Copy TCP window size to buf (16 bits)
-    memcpy (ptr, &tcphdr.th_win, sizeof (tcphdr.th_win));
-    ptr += sizeof (tcphdr.th_win);
-    chksumlen += sizeof (tcphdr.th_win);
-
-    // Copy TCP checksum to buf (16 bits)
-    // Zero, since we don't know it yet
-    *ptr = 0; ptr++;
-    *ptr = 0; ptr++;
-    chksumlen += 2;
-
-    // Copy urgent pointer to buf (16 bits)
-    memcpy (ptr, &tcphdr.th_urp, sizeof (tcphdr.th_urp));
-    ptr += sizeof (tcphdr.th_urp);
-    chksumlen += sizeof (tcphdr.th_urp);
-
-    return checksum ((uint16_t *) buf, chksumlen);
-}
-
-// Build IPv4 UDP pseudo-header and call checksum function.
-uint16_t 
-udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen)
-{
-    char buf[IP_MAXPACKET];
-    char *ptr;
-    int chksumlen = 0;
-    int i;
-
-    ptr = &buf[0];  // ptr points to beginning of buffer buf
-
-    // Copy source IP address into buf (32 bits)
-    memcpy (ptr, &iphdr.ip_src.s_addr, sizeof (iphdr.ip_src.s_addr));
-    ptr += sizeof (iphdr.ip_src.s_addr);
-    chksumlen += sizeof (iphdr.ip_src.s_addr);
-
-    // Copy destination IP address into buf (32 bits)
-    memcpy (ptr, &iphdr.ip_dst.s_addr, sizeof (iphdr.ip_dst.s_addr));
-    ptr += sizeof (iphdr.ip_dst.s_addr);
-    chksumlen += sizeof (iphdr.ip_dst.s_addr);
-
-    // Copy zero field to buf (8 bits)
-    *ptr = 0; ptr++;
-    chksumlen += 1;
-
-    // Copy transport layer protocol to buf (8 bits)
-    memcpy (ptr, &iphdr.ip_p, sizeof (iphdr.ip_p));
-    ptr += sizeof (iphdr.ip_p);
-    chksumlen += sizeof (iphdr.ip_p);
-
-    // Copy UDP length to buf (16 bits)
-    memcpy (ptr, &udphdr.len, sizeof (udphdr.len));
-    ptr += sizeof (udphdr.len);
-    chksumlen += sizeof (udphdr.len);
-
-    // Copy UDP source port to buf (16 bits)
-    memcpy (ptr, &udphdr.source, sizeof (udphdr.source));
-    ptr += sizeof (udphdr.source);
-    chksumlen += sizeof (udphdr.source);
-
-    // Copy UDP destination port to buf (16 bits)
-    memcpy (ptr, &udphdr.dest, sizeof (udphdr.dest));
-    ptr += sizeof (udphdr.dest);
-    chksumlen += sizeof (udphdr.dest);
-
-    // Copy UDP length again to buf (16 bits)
-    memcpy (ptr, &udphdr.len, sizeof (udphdr.len));
-    ptr += sizeof (udphdr.len);
-    chksumlen += sizeof (udphdr.len);
-
-    // Copy UDP checksum to buf (16 bits)
-    // Zero, since we don't know it yet
-    *ptr = 0; ptr++;
-    *ptr = 0; ptr++;
-    chksumlen += 2;
-
-    // Copy payload to buf
-    memcpy (ptr, payload, payloadlen);
-    ptr += payloadlen;
-    chksumlen += payloadlen;
-
-    // Pad to the next 16-bit boundary
-    for (i=0; i<payloadlen%2; i++, ptr++) {
-        *ptr = 0;
-        ptr++;
-        chksumlen++;
-    }
-
-    return checksum((uint16_t *)buf,chksumlen);
-}
-
-void my_packet_handler(
-    u_char *args,
-    const struct pcap_pkthdr *packet_header,
-    const u_char *packet_body
-)
-{
-    printf("GOT HERE: ");
     time_t t = packet_header->ts.tv_sec;
-    printf("%ld\n", t);
-
     times[times_index++] = t;
 
     if (times_index == 4)
@@ -264,7 +35,6 @@ void my_packet_handler(
 
         low_entropy *= 100;
         high_entropy *= 100;
-        printf("LOW: %f, HIGH: %f\n", low_entropy, high_entropy);
 
         if ((high_entropy - low_entropy) > THRESH)
         {
@@ -293,9 +63,10 @@ main(int argc, char **argv)
     */
     int bytes;
 
-    if (argc != 2){
-            fprintf (stderr, "ERROR: Too few or many arguments.\n");
-            exit (EXIT_FAILURE);
+    if (argc < 2 || argc > 3)
+    {
+        fprintf (stderr, "ERROR: Too few or many arguments.\n");
+        exit (EXIT_FAILURE);
     }
     unsigned int packet_id = 0;
     //read JSON file to obtain data (TTL will be our main variable)
@@ -307,6 +78,10 @@ main(int argc, char **argv)
         packet_info.server_ip++;
     }
 
+    if (argc == 3)
+    {
+        packet_info.TTL = atoi(argv[2]);
+    }
 
     pid_t child = fork();
 
@@ -325,7 +100,6 @@ main(int argc, char **argv)
 
         char filter_exp[1000] = {0};
         sprintf(filter_exp, "(dst %s) && (src 192.168.86.211) && (tcp[tcpflags] & (tcp-rst) != 0) && ((port %s) || (port %s))", packet_info.server_ip, packet_info.dest_prt_tcp_head, packet_info.dest_prt_tcp_tail);
-        printf("filter: %s\n", filter_exp);
        
         bpf_u_int32 subnet_mask, ip;
 
@@ -347,6 +121,7 @@ main(int argc, char **argv)
             printf("Error setting filter - %s\n", pcap_geterr(handle));
             return 2;
         }
+
         pcap_loop(handle, 0, my_packet_handler, NULL);
 
         pcap_close(handle);
@@ -393,7 +168,6 @@ main(int argc, char **argv)
             return (EXIT_FAILURE);
         }
         close (sd);
-        printf ("Index for interface %s is %i\n", interface, ifr.ifr_ifindex);
 
         // Source IPv4 address: you need to fill this out
         strcpy (src_ip, "192.168.86.211");

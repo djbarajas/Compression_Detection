@@ -15,7 +15,7 @@
 #include "signal.h"
 
 #define SA struct sockaddr
-#define THRESH 100
+enum{THRESH=100};
 
 int 
 tokenize(char * buff, struct json * tcp_info)
