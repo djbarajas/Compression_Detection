@@ -84,7 +84,7 @@ tokenize(char * buff, struct json * tcp_info)
  * @see #tokenize(char * buff, struct json * tcp_info)
  */
 void 
-func(int sockfd, char * buff, int len, struct json * tcp_info) 
+send_message_to_client(int sockfd, char * buff, int len, struct json * tcp_info) 
 {   
 	char new[8] = "ERROR!!";
 	char success[8] = "SUCCESS";
@@ -184,7 +184,7 @@ main(int argc, char ** argv)
     char buff[1000];
   
     connfd = server_setup(SOCK_STREAM,&sockfd,&servaddr,&cli);
-    func(connfd, buff, 1000, &tcp_info);
+    send_message_to_client(connfd, buff, 1000, &tcp_info);
     printf("Ending connection\n");
     close(sockfd);
 
