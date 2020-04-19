@@ -1,12 +1,3 @@
-/*
-    *CHECK [ADDR_INFO_TERM]
-    * How do we know if we need htons or not? dont all bits require an order check?
-    * check source port
-    * check stuff to free
-    * why do we need checksum for both IP and TCP?
-    *free addr info term?
-*/
-
 #include "read_json.h"
 #include "allocations.h"
 #include "packet_setup.h"
@@ -17,10 +8,26 @@ enum{THRESH=100, UDP_HDRLEN=8, ICMP_HDRLEN=8, TCP_HDRLEN=20, IP4_HDRLEN=20, TCP_
 int times_index = 0;
 time_t times[4] = {0}; 
 
-/* 
-    *this class is responsible for compression detection with an uncooperative server* 
-    *uncooperative denotes inability to obtain control of the server (but its still responsive)*
-*/
+/**
+ * @file standalone.c
+ *
+ * source code for our client that is responsible for compression detection
+   with an uncooperative server
+ *
+ */
+
+
+
+/**
+ *  function to capture incoming RST packet after applying various filters
+ *
+ * @param args | TCP or UDP
+ *
+ * @param packet_header | metadata about the packet
+ *
+ * @param packet_body | the packet itself
+ *
+ */
 void 
 my_packet_handler(u_char *args, const struct pcap_pkthdr *packet_header, const u_char *packet_body)
 {
