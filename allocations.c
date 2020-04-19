@@ -1,6 +1,24 @@
 #include "allocations.h"
 
-// Allocate memory for an array of chars.
+/**
+ * @file allocations.c
+ *
+ * source code exploited by our clients and server for error-free 
+   allocation of memory through size dependencies.
+ *
+ */
+
+
+
+/**
+ * integer array memory allocation function
+ *
+ * this function is responsible for setting fixed space for an integer array
+ *
+ * @param len | this is the size of the array (number of elements)
+ *
+ * Does not envoke any local helper functions
+ */
 char * 
 allocate_strmem(int len)
 {
@@ -21,7 +39,15 @@ allocate_strmem(int len)
 	}
 }
 
-// Allocate memory for an array of ints.
+/**
+ * signed char array memory allocation function
+ *
+ * this function is responsible for setting fixed space for an signed char array
+ *
+ * @param len | this is the size of the array (number of elements)
+ *
+ * Does not envoke any local helper functions
+ */
 int * 
 allocate_intmem(int len)
 {
@@ -42,7 +68,15 @@ allocate_intmem(int len)
 	}
 }
 
-// Allocate memory for an array of unsigned chars.
+/**
+ * unsigned char array memory allocation function
+ *
+ * this function is responsible for setting fixed space for an unsigned char array
+ *
+ * @param len | this is the size of the array (number of elements)
+ *
+ * Does not envoke any local helper functions
+ */
 uint8_t *
 allocate_ustrmem(int len)
 {

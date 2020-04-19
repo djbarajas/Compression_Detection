@@ -16,8 +16,32 @@
 #define SA struct sockaddr 
 #define PORT     8080 
 
+/**
+ * @file client_cooperative.c
+ *
+ * source code for our server that helps with compression detection with 
+   a cooperative server
+ *
+ */
+
+
+/**
+ * socket connection function
+ *
+ * this function is responsible for opening a socket connectin
+ *
+ * @param packet_info | initialize json struct for information gathering
+ *
+ * @param socket_type | socket of type TCP or UDP 
+ *
+ * @param sockfd | socket file directory
+ *
+ * @param clientaddr | the address of our client
+ *
+ * Does not envoke any local helper functions
+ */
 void 
-packet_setup (struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr)
+socket_setup (struct json packet_info, int socket_type, int* sockfd,struct sockaddr_in* clientaddr)
 {
 	
 	*sockfd = socket(AF_INET, socket_type, 0); 
@@ -40,14 +64,9 @@ packet_setup (struct json packet_info, int socket_type, int* sockfd,struct socka
 	clientaddr->sin_port = htons(atoi(packet_info.prt_tcp)); 
 }
 
-void 
-func(int sockfd, char * buff, int len) 
-{ 
-	int n; 
-	bzero(buff, len); 
-	write(sockfd, buff, len); 
-} 
-  
+
+
+
 int 
 main(int argc, char **argv) 
 { 
@@ -83,7 +102,7 @@ main(int argc, char **argv)
 
 	bzero(data_2, packet_info.payload_sz);
 
-	packet_setup(packet_info, SOCK_STREAM, &sockfd, &clientaddr);
+	socket_setup(packet_info, SOCK_STREAM, &sockfd, &clientaddr);
 
 	read_high_entropy_data(&data_2[16], packet_info.payload_sz-16);
 	printf("Finished reading high entropy data\n");
@@ -124,6 +143,8 @@ main(int argc, char **argv)
 
 	struct sockaddr_in addr, srcaddr;
 	int fd;
+
+	// initialize socket connection
 	fd = socket(AF_INET, SOCK_DGRAM, 0);
 	if (fd < 0) {
 		perror("socket");
@@ -141,6 +162,7 @@ main(int argc, char **argv)
 	srcaddr.sin_port = htons(atoi(packet_info.src_prt_udp));
 	val=IP_PMTUDISC_DO;
 
+	//set partial socket information
 	if (setsockopt(fd, IPPROTO_IP, IP_MTU_DISCOVER, &val, sizeof(val))<0){
 		printf("unable to set DONT_FRAGMENT bit...\n"); 
 		exit(0); 
@@ -212,6 +234,7 @@ main(int argc, char **argv)
 	} 
 	else
 		printf("connected to the server..\n"); 
+
 	bzero(buff, 1000); 
 	send(sockfd, buff, 1000, 0); 
 	bzero(buff, 1000); 

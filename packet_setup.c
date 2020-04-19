@@ -1,8 +1,25 @@
 #include "packet_setup.h"
 
-/*
-* Packet ids
-*/
+/**
+ * @file packet_setup.c
+ *
+ * source code exploited by our clients and server for setting up packet ids,
+   reading packet payload, and initializing header and checksum
+ *
+ */
+
+
+/**
+ * id packet attachment function
+ *
+ * this function is responsible for generating a unique id for each packet
+ *
+ * @param bin | this is the binary version of the packet id (a binary strings)
+ *
+ * @param val | this is the unique id
+ *
+ * Does not envoke any local helper functions
+ */
 void 
 packet_id_setup (char* bin, unsigned int val)
 {
@@ -14,7 +31,17 @@ packet_id_setup (char* bin, unsigned int val)
 	}
 }
 
-
+/**
+ * high entropy payload setup function
+ *
+ * this function is responsible for generating and assigning data for a group of packets
+ *
+ * @param data | this is the group of packets we are sending out
+ *
+ * @param len | the amount of packets to fill in 
+ *
+ * Does not envoke any local helper functions
+ */
 void 
 read_high_entropy_data(uint8_t * data, int len) 
 {
@@ -26,11 +53,18 @@ read_high_entropy_data(uint8_t * data, int len)
 	fclose(file_ptr);
 }
 
-// we have two different checksums: One for our UDP packets and the other for the TCP connection.
 
-
-// Computing the internet checksum (RFC 1071).
-// Note that the internet checksum does not preclude collisions.
+/**
+ * IP checksum setup function
+ *
+ * this function is responsible for creating a unique checksum for our IP headers
+ *
+ * @param addr | this is the address of the IP header
+ *
+ * @param len | the length of the checksums
+ *
+ * Does not envoke any local helper functions
+ */
 uint16_t 
 checksum(uint16_t *addr, int len)
 {
@@ -62,7 +96,20 @@ checksum(uint16_t *addr, int len)
     return (answer);
 }
 
-// Build IPv4 TCP pseudo-header and call checksum function.
+
+/**
+ * TCP checksum setup function
+ *
+ * this function is responsible for creating a unique checksum for our TCP headers
+ *
+ * @param iphdr | this contains the IP header information
+ *
+ * @param tcphdr | this contains the TCP header information
+ *
+ * this function envokes checksum 
+ * @see #checksum(uint16_t *addr, int len)
+ *
+ */
 uint16_t 
 tcp4_checksum (struct ip iphdr, struct tcphdr tcphdr)
 {
@@ -150,7 +197,24 @@ tcp4_checksum (struct ip iphdr, struct tcphdr tcphdr)
     return checksum ((uint16_t *) buf, chksumlen);
 }
 
-// Build IPv4 UDP pseudo-header and call checksum function.
+
+/**
+ * UDP checksum setup function
+ *
+ * this function is responsible for creating a unique checksum for our UDP headers
+ *
+ * @param iphdr | this contains the IP header information
+ *
+ * @param udphdr | this contains the UDP header information
+ *
+ * @param payload | this is the body of the packet
+ *
+ * @param payloadlen | this is the length of the packet payload
+ *
+ * this function envokes checksum function
+ * @see #checksum(uint16_t *addr, int len)
+ *
+ */
 uint16_t 
 udp4_checksum(struct ip iphdr, struct udphdr udphdr, uint8_t *payload, int payloadlen)
 {

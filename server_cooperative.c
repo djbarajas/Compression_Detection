@@ -17,6 +17,26 @@
 #define SA struct sockaddr
 enum{THRESH=100};
 
+/**
+ * @file server_cooperative.c
+ *
+ * source code for our cooperative server that helps with compression
+   detection
+ *
+ */
+
+
+/**
+ * packet info initialization function
+ *
+ * this function is responsible for initializing the json struct that will store packet data
+ *
+ * @param buff | string that will store packet information
+ *
+ * @param tcp_info | json struct that holds the same information
+ *
+ * Does not envoke any local helper functions
+ */
 int 
 tokenize(char * buff, struct json * tcp_info)
 {
@@ -51,7 +71,18 @@ tokenize(char * buff, struct json * tcp_info)
 }
 
 
-// Function designed for chat between client and server. 
+/**
+ * socket communication function
+ *
+ * this function is responsible for communicating with the client for data retrieval
+ *
+ * @param buff | string that holds packet information
+ *
+ * @param tcp_info | json struct that holds the same information
+ *
+ * this function envokes tokenize
+ * @see #tokenize(char * buff, struct json * tcp_info)
+ */
 void 
 func(int sockfd, char * buff, int len, struct json * tcp_info) 
 {   
@@ -77,6 +108,21 @@ func(int sockfd, char * buff, int len, struct json * tcp_info)
     }
 }
 
+/**
+ * socket setup function
+ *
+ * this function is responsible for opening a socket connection for communication
+ *
+ * @param socket_type | TCP or UDP
+ *
+ * @param sockfd | socket file directory
+ *
+ * @param servaddr | json struct that holds the same information
+ *
+ * @param peer_addr | json struct that holds the same information
+ *
+ * Does not envoke any local helper functions
+ */
 int 
 server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct sockaddr_in* peer_addr){
     
@@ -125,6 +171,7 @@ server_setup(int socket_type, int* sockfd,struct sockaddr_in* servaddr, struct s
   
     return connfd;
 }
+
 
 int 
 main(int argc, char ** argv) 

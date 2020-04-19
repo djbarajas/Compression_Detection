@@ -1,6 +1,27 @@
-
 #include "read_json.h"
 
+/**
+ * @file read_json.c
+ *
+ * source code exploited by our clients and server for reading a json file and
+   and setting up packet information
+ *
+ */
+
+
+/**
+ * json struct setup function
+ *
+ * this function is responsible for assigning packet information from config file
+ *
+ * @param to_read | this is the json structure to fill in
+ *
+ * @param line | this denotes the line we are at in the file
+ *
+ * @param all | the string that holds information that is sent to the server
+ *
+ * Does not envoke any local helper functions
+ */
 void 
 set_struct(struct json * to_read, char * line, char * all)
 {
@@ -112,6 +133,22 @@ set_struct(struct json * to_read, char * line, char * all)
 	}
 }
 
+/**
+ * file parsing function
+ *
+ * this function is responsible for parsing the configuration file and 
+   storing information into a json struct
+ *
+ * @param to_read | json struct to fill in
+ *
+ * @param file_name | name of the configuration file
+ *
+ * @param all | the string that holds information that is sent to the server
+ *
+ * this function envokes set_struct
+ * @see #set_struct(struct json * to_read, char * line, char * all)
+ *
+ */
 void 
 read_json (struct json * to_read, char * file_name, char * all)
 {

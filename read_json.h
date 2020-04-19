@@ -1,3 +1,9 @@
+/**
+* @file read_json.h
+*
+* header file for reading a json file and storing it within a json struct
+*/
+
 #ifndef _RD_JN_
 #define _RD_JN_
 
@@ -6,6 +12,7 @@
 #include <stdbool.h>
 #include <string.h>
 
+/* structure that holds packet information */
 struct json
 {
 	char * server_ip;
@@ -20,6 +27,8 @@ struct json
 	int TTL;
 };
 
+
+/* Function prototypes */
 void 
 read_json (struct json * to_read, char * file_name, char * all);
 
