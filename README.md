@@ -7,13 +7,13 @@ Here, two factors come into play: the [client](client_cooperative.c) and [server
 
 Data Type         | Meaning                                                 | Compression Capacity
 -------------     | -------------                                           | -------------
-low entropy data  | It is data with highly repetitive information           | High
-high entropy data | It is data with less frequent similarity of information | Low 
+low entropy data  | Data with highly repetitive information           | High
+high entropy data | Data with less frequent similarity of information | Low 
 
 
 Noting from the table, we can see that the effects of compression are not autonomous for all data and therefore it is necessary to include the differences for better accuracy in detecting its presence. 
 
-Finally, we compute the difference in time between the arrival of the first bit of the first packet up until the first bit of the last packet received from the low entropy train (∆tL), repeat this calculation for the high entropy set (∆tH), and check for compression by calculating their differences. Compression is present when the difference is less than a threshold (100 ms) calculated from the time precision and performance of our machine. This result is then sent to the client as a form of a buffer for further analysis.
+We compute the difference in time between the arrival of the first bit of the first packet up until the first bit of the last packet received from the low entropy train (∆tL), repeat this calculation for the high entropy set (∆tH), and check for compression by calculating their difference. Compression is present when the difference is less than a threshold (100 ms) calculated from the time precision and performance of our machine. This result is then sent to the client as a form of a buffer for further analysis.
 
 ## Responsive End Point 
 Unlike cooperative servers, responsive hosts are free from any restrictions or orders enforced by the [client](standalone.c), making it difficult to manipulate for data retrieval. From what we know, any host machine in the network holds a wide range of ports that need to be open for connection in order to receive data. However, when a client attempts to communicate with an unavailable port, RST packets are sent back to inform the client of the failed attempt. 
@@ -77,5 +77,5 @@ chmod +x standalone.sh
 
 8. For the standalone we decided to make the program run once by running ./standalone with whatever configuration the user chooses then made a wrapper script incrementing the TTL for the last part of the project for detecting compression.  The easiest way to do this was to add an extra argument for the standalone program to take in a TTL if the user specified which would overwrite what was read in from the config file in the struct that we created.  If the user wishes they could specify a TTL for example ./standalone myconfig.json 100, but this option is really meant for the wrapper script that we created.
 
-## resources
+## Resources
 https://lasr.cs.ucla.edu/vahab/resources/compression_detection.pdf
