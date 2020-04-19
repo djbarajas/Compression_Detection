@@ -14,7 +14,6 @@
 #include "signal.h"
 
 #define SA struct sockaddr 
-#define PORT     8080 
 
 /**
  * @file client_cooperative.c
