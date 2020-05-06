@@ -84,3 +84,5 @@ chmod +x standalone.sh
 
 ## Resources
 https://lasr.cs.ucla.edu/vahab/resources/compression_detection.pdf
+
+Detailed project guide found at [project guide] (Project_Guidelines.pdf)
